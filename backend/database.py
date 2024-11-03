@@ -23,11 +23,19 @@ def extract_info(url):
     soup = BeautifulSoup(response.content, 'html.parser')
     
     # Example: Extract all paragraphs from the page
-    paragraphs = soup.find_all('p')
-    content = ' '.join([p.get_text() for p in paragraphs])
-    print(content)
+    elements = soup.find_all(['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'div', 'span'])
+    # Gather text content, filtering out unwanted sections
+    content = []
+    for element in elements:
+        # Exclude navigation, footers, or irrelevant sections if they have identifiable classes or IDs
+        if not element.get('class') or ('nav' not in element.get('class') and 'footer' not in element.get('class')):
+            content.append(element.get_text(strip=True))
+            
+    # Join the content into a single string
+    full_content = ' '.join(content)
+    print(full_content)
     
-    return content
+    return full_content
 
 
 def chunk_text(text, chunk_size=512, overlap=100):
@@ -96,4 +104,3 @@ def delete_namespace(index, namespace):
 
 # process_and_store(urls, namespace)
 # delete_namespace(index, namespace)
-    

@@ -1,9 +1,8 @@
-import logging
 import streamlit as st
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_community.llms import Ollama
-from database import*
+from backend.database import*
 import os
 
 model = os.environ.get("MODEL", "llama3.2")
