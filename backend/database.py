@@ -6,13 +6,16 @@ from bs4 import BeautifulSoup
 
 pc = Pinecone(api_key="pcsk_nPS6S_MLDxFdbMPRtAdeJocvPqLujtFTJx2aKX5y1yndBktFf37cfNW6atk398kBPxFVb")
 index = pc.Index("website-chatbot")
-namespace = 'foundation-engineering'
+namespace = 'foundation-in-arts-and-education'
 
 
 # List of URLs to scrape
 urls = [
-    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering'
-    # Add more URLs as needed
+    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering',
+    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education'
+    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management',
+    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science',
+    
 ]
 
 def extract_info(url):
@@ -22,9 +25,13 @@ def extract_info(url):
     # Parse the HTML content
     soup = BeautifulSoup(response.content, 'html.parser')
     
+    # Remove script, style, and link tags
+    for script_or_style in soup(['script', 'style', 'title', 'a']):
+        script_or_style.decompose()
+    
     # Example: Extract all paragraphs from the page
-    elements = soup.find_all(['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'div', 'span'])
-    # Gather text content, filtering out unwanted sections
+    elements = soup.find_all(['p', 'ul', 'ol', 'li', 'div', 'span'])
+    
     content = []
     for element in elements:
         # Exclude navigation, footers, or irrelevant sections if they have identifiable classes or IDs
@@ -38,14 +45,14 @@ def extract_info(url):
     return full_content
 
 
-def chunk_text(text, chunk_size=512, overlap=100):
+def chunk_text(text, chunk_size=300, overlap=150):
     
     chunks = []
     start = 0
     while start < len(text):
         end = min(start + chunk_size, len(text))
         chunks.append(text[start:end])
-        start += chunk_size - overlap  # Move start forward, overlapping by the specified amount
+        start += chunk_size - overlap
     return chunks
 
 def generate_embedding(text):
@@ -58,7 +65,7 @@ def upsert_chunk_to_pinecone( embedding, url, chunk_id, chunk_text, namespace):
 
     upsert_data = [
         {
-            'id': f"{url}_chunk_{chunk_id}",  # Unique ID for each chunk
+            'id': f"chunk_{chunk_id}",  # Unique ID for each chunk
             'values': embedding,
             'metadata': {
                 'source_url': url,
@@ -76,7 +83,11 @@ def search_similar_vectors(query, namespace, top_k=3):
     query_embedding = generate_embedding(query)
     search_results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True, namespace=namespace)
     print(search_results)
-    return search_results['matches'][0]['metadata']
+    
+    combined_context = ' '.join(
+        [result['metadata']['text'] for result in search_results['matches'] if 'text' in result['metadata']]
+    )
+    return combined_context
     
 def process_and_store(urls, namespace):
     for url in urls:

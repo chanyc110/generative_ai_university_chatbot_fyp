@@ -7,6 +7,7 @@ from langchain.chains import LLMChain
 from langchain_community.llms import Ollama # Assumes you have a compatible Ollama client
 from fastapi.middleware.cors import CORSMiddleware
 from database import*
+from database import namespace
 
 app = FastAPI()
 
@@ -40,8 +41,7 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 @app.post("/chat")
 async def chat(query: QueryRequest):
-    metadata = search_similar_vectors(query.user_query, namespace="foundation-engineering")
-    context = metadata['text']
+    context = search_similar_vectors(query.user_query, namespace=namespace)
     print("Context:", context)
     response = llm_chain.run(context=context, user_query=query.user_query)
     return {"response": response}
