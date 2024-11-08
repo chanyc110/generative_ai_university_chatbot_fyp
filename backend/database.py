@@ -2,19 +2,21 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 import ollama
 import requests
 from bs4 import BeautifulSoup
+from typing import Optional
+
 
 
 pc = Pinecone(api_key="pcsk_nPS6S_MLDxFdbMPRtAdeJocvPqLujtFTJx2aKX5y1yndBktFf37cfNW6atk398kBPxFVb")
 index = pc.Index("website-chatbot")
-namespace = 'foundation-in-arts-and-education'
+# namespace = 'foundation-in-science'
 
 
 # List of URLs to scrape
 urls = [
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering',
-    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education'
+    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education'
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management',
-    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science',
+    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science'
     
 ]
 
@@ -79,7 +81,28 @@ def upsert_chunk_to_pinecone( embedding, url, chunk_id, chunk_text, namespace):
     index.upsert(vectors=upsert_data, namespace=namespace)
     
     
-def search_similar_vectors(query, namespace, top_k=3):
+namespace_mapping = {
+    ("arts", "education", "foundation"): "foundation-in-arts-and-education",
+    ("science", "foundation"): "foundation-in-science",
+    "engineering": "foundation-in-engineering",
+}
+
+def determine_namespace(query: str) -> Optional[str]:
+    query_lower = query.lower()
+    
+    for keywords, namespace in namespace_mapping.items():
+        # Check if all keywords in the tuple appear in the query
+        if all(keyword in query_lower for keyword in keywords):
+            print(f"Matched keywords {keywords}. Selected namespace: {namespace}")
+            return namespace
+    
+    # No match found
+    print("No matching namespace found for the given query.")
+    return None
+    
+def search_similar_vectors(query,top_k=3):
+    namespace = determine_namespace(query)
+    
     query_embedding = generate_embedding(query)
     search_results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True, namespace=namespace)
     print(search_results)

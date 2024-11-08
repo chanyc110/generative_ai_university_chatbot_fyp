@@ -1,13 +1,12 @@
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Dict
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_community.llms import Ollama # Assumes you have a compatible Ollama client
 from fastapi.middleware.cors import CORSMiddleware
 from database import*
-from database import namespace
+# from database import namespace
 
 app = FastAPI()
 
@@ -41,7 +40,7 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 @app.post("/chat")
 async def chat(query: QueryRequest):
-    context = search_similar_vectors(query.user_query, namespace=namespace)
+    context = search_similar_vectors(query.user_query)
     print("Context:", context)
     response = llm_chain.run(context=context, user_query=query.user_query)
     return {"response": response}
