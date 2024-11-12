@@ -3,9 +3,11 @@ import ollama
 import requests
 from bs4 import BeautifulSoup
 from typing import Optional
+from langchain.text_splitter import CharacterTextSplitter
 
 
 
+# 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
 pc = Pinecone(api_key="pcsk_nPS6S_MLDxFdbMPRtAdeJocvPqLujtFTJx2aKX5y1yndBktFf37cfNW6atk398kBPxFVb")
 index = pc.Index("website-chatbot")
 # namespace = 'foundation-in-science'
@@ -24,14 +26,12 @@ def extract_info(url):
     # Send a GET request to the webpage
     response = requests.get(url)
     
-    # Parse the HTML content
     soup = BeautifulSoup(response.content, 'html.parser')
     
     # Remove script, style, and link tags
-    for script_or_style in soup(['script', 'style', 'title', 'a']):
+    for script_or_style in soup(['script', 'style', 'title', 'a', 'header', 'footer', 'nav', 'head', 'meta', 'link']):
         script_or_style.decompose()
-    
-    # Example: Extract all paragraphs from the page
+        
     elements = soup.find_all(['p', 'ul', 'ol', 'li', 'div', 'span'])
     
     content = []
@@ -39,7 +39,7 @@ def extract_info(url):
         # Exclude navigation, footers, or irrelevant sections if they have identifiable classes or IDs
         if not element.get('class') or ('nav' not in element.get('class') and 'footer' not in element.get('class')):
             content.append(element.get_text(strip=True))
-            
+
     # Join the content into a single string
     full_content = ' '.join(content)
     print(full_content)
@@ -47,39 +47,28 @@ def extract_info(url):
     return full_content
 
 
-def chunk_text(text, chunk_size=300, overlap=150):
+
+def chunk_text(text, chunk_size=500, overlap=50):
+    text_splitter = CharacterTextSplitter(separator=" ", chunk_size=chunk_size, chunk_overlap=overlap)
     
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = min(start + chunk_size, len(text))
-        chunks.append(text[start:end])
-        start += chunk_size - overlap
+    # Split the text into chunks
+    chunks = text_splitter.split_text(text)
+    
+    # chunks = []
+    # start = 0
+    # while start < len(text):
+    #     end = min(start + chunk_size, len(text))
+    #     chunks.append(text[start:end])
+    #     start += chunk_size - overlap
+    
     return chunks
 
 def generate_embedding(text):
-    response = ollama.embeddings(model='mxbai-embed-large', 
-                                prompt='Represent this sentence for searching relevant passages:' + text)
+    response = ollama.embeddings(model='nomic-embed-text', 
+                                prompt= text)
     embedding = response['embedding']
     return embedding
 
-def upsert_chunk_to_pinecone( embedding, url, chunk_id, chunk_text, namespace):
-
-    upsert_data = [
-        {
-            'id': f"chunk_{chunk_id}",  # Unique ID for each chunk
-            'values': embedding,
-            'metadata': {
-                'source_url': url,
-                'chunk_id': chunk_id,
-                'text': chunk_text
-            }
-        }
-    ]
-    
-    # Upsert data into Pinecone under the specified namespace
-    index.upsert(vectors=upsert_data, namespace=namespace)
-    
     
 namespace_mapping = {
     ("arts", "education", "foundation"): "foundation-in-arts-and-education",
@@ -113,6 +102,8 @@ def search_similar_vectors(query,top_k=3):
     return combined_context
     
 def process_and_store(urls, namespace):
+    vectors = []
+    
     for url in urls:
         # Step 1: Scrape the content from the URL
         content = extract_info(url)
@@ -120,21 +111,26 @@ def process_and_store(urls, namespace):
         # Step 2: Chunk the content
         chunks = chunk_text(content)
         
-        # Step 3: Embed and upsert each chunk
+        # Step 3: Embed and store each chunk's vector
         for i, chunk in enumerate(chunks):
-            embedding = generate_embedding(chunk)
-            upsert_chunk_to_pinecone(embedding, url, i, chunk, namespace)
+            embedding = generate_embedding(chunk)  # Generate the embedding for the chunk
             
+            # Append the chunk's data to the vectors list
+            vectors.append({
+                'id': f"chunk_{i}",  # Unique ID for each chunk
+                'values': embedding,  # Embedding values
+                'metadata': {
+                    'chunk_id': i,      # The chunk ID
+                    'text': chunk       # The actual chunk of text
+                }
+            })
             
+    index.upsert(vectors=vectors, namespace=namespace)
             
-def delete_namespace(index, namespace):
-    
-    index.delete(namespace=namespace, delete_all=True) 
-    print(f"Namespace '{namespace}' has been deleted.")           
+
 
 
 
 """To run"""
 
-# process_and_store(urls, namespace)
-# delete_namespace(index, namespace)
+# process_and_store(urls, 'foundation-in-science')
