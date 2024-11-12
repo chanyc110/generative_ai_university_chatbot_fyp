@@ -17,8 +17,8 @@ index = pc.Index("website-chatbot")
 urls = [
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering',
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education'
-    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management',
-    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science'
+    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management'
+    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science'
     
 ]
 
@@ -32,7 +32,7 @@ def extract_info(url):
     for script_or_style in soup(['script', 'style', 'title', 'a', 'header', 'footer', 'nav', 'head', 'meta', 'link']):
         script_or_style.decompose()
         
-    elements = soup.find_all(['p', 'ul', 'ol', 'li', 'div', 'span'])
+    elements = soup.find_all(['p', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th'])
     
     content = []
     for element in elements:
@@ -41,6 +41,35 @@ def extract_info(url):
             content.append(element.get_text(strip=True))
 
     # Join the content into a single string
+    full_content = ' '.join(content)
+    print(full_content)
+    
+    return full_content
+
+
+def extract_info_by_class(url, target_class):
+    # Send a GET request to the webpage
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # Remove unnecessary tags globally
+    for tag in soup(['script', 'style', 'title', 'a', 'header', 'footer', 'nav', 'head', 'meta', 'link']):
+        tag.decompose()
+        
+    # Locate the section with the specified class
+    target_section = soup.find('div', class_=target_class)
+    if not target_section:
+        print(f"Section with class '{target_class}' not found.")
+        return ""
+    
+    # Extract relevant tags within the target section
+    content = []
+    for element in target_section.find_all(['p', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th']):
+        text = element.get_text(strip=True)
+        if text:  # Include only non-empty text
+            content.append(text)
+    
+    # Join all text with line breaks for clarity
     full_content = ' '.join(content)
     print(full_content)
     
@@ -73,7 +102,7 @@ def generate_embedding(text):
 namespace_mapping = {
     ("arts", "education", "foundation"): "foundation-in-arts-and-education",
     ("science", "foundation"): "foundation-in-science",
-    "engineering": "foundation-in-engineering",
+    ("business", "management", "foundation"): "foundation-in-business-and-management",
 }
 
 def determine_namespace(query: str) -> Optional[str]:
@@ -107,6 +136,7 @@ def process_and_store(urls, namespace):
     for url in urls:
         # Step 1: Scrape the content from the URL
         content = extract_info(url)
+        # content = extract_info_by_class(url, 'Coursestyled__CourseStyled-sc-1twdnvy-0 jLxhcF')
         
         # Step 2: Chunk the content
         chunks = chunk_text(content)
@@ -133,4 +163,4 @@ def process_and_store(urls, namespace):
 
 """To run"""
 
-# process_and_store(urls, 'foundation-in-science')
+# process_and_store(urls, 'foundation-in-business-and-management')
