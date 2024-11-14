@@ -6,7 +6,8 @@ from langchain.chains import LLMChain
 from langchain_community.llms import Ollama # Assumes you have a compatible Ollama client
 from fastapi.middleware.cors import CORSMiddleware
 from database import*
-# from database import namespace
+from openai import OpenAI
+from langchain.chat_models import ChatOpenAI
 
 app = FastAPI()
 
@@ -24,13 +25,14 @@ class QueryRequest(BaseModel):
 
 # Model configuration and prompt template
 model = os.environ.get("MODEL", "llama3.2")
-llm = Ollama(model=model)
+# llm = Ollama(model=model)
+llm = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv('OPENAI_API_KEY'))
 
 template_test = """
-You are a helpful assistant. 
+You are a helpful assistant at the University of Nottingham Malaysia(UNM), that answers inquiries from prospective students. 
 Use the context provided to answer the user's question. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-    
+
 Context:{context}
 User Query:{user_query}"""
 

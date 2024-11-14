@@ -4,22 +4,31 @@ import requests
 from bs4 import BeautifulSoup
 from typing import Optional
 from langchain.text_splitter import CharacterTextSplitter
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+from langchain.document_loaders import UnstructuredURLLoader
 
+# Load the .env file
+load_dotenv()
 
-
-# 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
 pc = Pinecone(api_key="pcsk_nPS6S_MLDxFdbMPRtAdeJocvPqLujtFTJx2aKX5y1yndBktFf37cfNW6atk398kBPxFVb")
 index = pc.Index("website-chatbot")
+
+client = OpenAI(
+    api_key= os.getenv('OPENAI_API_KEY')
+)
 # namespace = 'foundation-in-science'
 
+    
 
 # List of URLs to scrape
 urls = [
+    
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering',
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education'
     'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management'
     # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science'
-    
 ]
 
 def extract_info(url):
@@ -75,27 +84,43 @@ def extract_info_by_class(url, target_class):
     
     return full_content
 
+def extract_info_by_loader(url):
+    loader = UnstructuredURLLoader(urls=url)
+    
+    documents = loader.load()
+    
+    
+    
+    return documents
 
 
-def chunk_text(text, chunk_size=500, overlap=50):
+
+def chunk_text(text, chunk_size=1000, overlap=150):
     text_splitter = CharacterTextSplitter(separator=" ", chunk_size=chunk_size, chunk_overlap=overlap)
     
     # Split the text into chunks
     chunks = text_splitter.split_text(text)
     
-    # chunks = []
-    # start = 0
-    # while start < len(text):
-    #     end = min(start + chunk_size, len(text))
-    #     chunks.append(text[start:end])
-    #     start += chunk_size - overlap
-    
     return chunks
 
+# def generate_embedding(text):
+#     response = ollama.embeddings(model='nomic-embed-text', 
+#                                 prompt= text)
+#     embedding = response['embedding']
+#     return embedding
+
 def generate_embedding(text):
-    response = ollama.embeddings(model='nomic-embed-text', 
-                                prompt= text)
-    embedding = response['embedding']
+    # response = ollama.embeddings(model='nomic-embed-text', prompt=text)
+    # embedding = response['embedding']
+    
+    response = client.embeddings.create(
+        model="text-embedding-ada-002", 
+        input=text,
+        encoding_format="float"
+    )
+    
+    # Extract the embedding from the response
+    embedding = response.data[0].embedding
     return embedding
 
     
@@ -118,7 +143,7 @@ def determine_namespace(query: str) -> Optional[str]:
     print("No matching namespace found for the given query.")
     return None
     
-def search_similar_vectors(query,top_k=3):
+def search_similar_vectors(query,top_k=5):
     namespace = determine_namespace(query)
     
     query_embedding = generate_embedding(query)
@@ -135,8 +160,9 @@ def process_and_store(urls, namespace):
     
     for url in urls:
         # Step 1: Scrape the content from the URL
-        content = extract_info(url)
-        # content = extract_info_by_class(url, 'Coursestyled__CourseStyled-sc-1twdnvy-0 jLxhcF')
+        # content = extract_info(url)
+        content = extract_info_by_class(url, 'Coursestyled__CourseStyled-sc-1twdnvy-0 jLxhcF')
+        # content = extract_info_by_loader(url)
         
         # Step 2: Chunk the content
         chunks = chunk_text(content)
@@ -157,8 +183,6 @@ def process_and_store(urls, namespace):
             
     index.upsert(vectors=vectors, namespace=namespace)
             
-
-
 
 
 """To run"""
