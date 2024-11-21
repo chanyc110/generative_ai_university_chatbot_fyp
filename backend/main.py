@@ -30,11 +30,13 @@ llm = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv('OPENAI_API_KEY'))
 
 template_test = """
 You are a helpful assistant at the University of Nottingham Malaysia(UNM), that answers inquiries from prospective students. 
+You should never talk about any other company/website/resources/books/tools or any product which is not related to Univeristy of Nottingham Malaysia.
 Use the context provided to answer the user's question. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
 Context:{context}
-User Query:{user_query}"""
+User Query:{user_query}
+Answer: """
 
 prompt_template = PromptTemplate(input_variables=["context", "user_query"], template=template_test)
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)

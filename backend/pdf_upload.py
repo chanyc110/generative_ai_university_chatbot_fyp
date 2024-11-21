@@ -56,6 +56,7 @@ def extract_info_by_ocr(file: BytesIO, namespace):
     # Extract text from the PDF file using LlamaParse OCR
     documents = parser.load_data(file_bytes, extra_info={"file_name": file.name})
     text = " ".join([doc.text for doc in documents])
+    print(text)
     
     # Split the text into chunks
     chunks = chunk_text(text)
