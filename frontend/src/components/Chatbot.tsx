@@ -6,21 +6,29 @@ const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const toggleChatbot = () => setIsOpen(!isOpen);
 
   const sendMessage = async () => {
     if (input.trim()) {
       setMessages([...messages, { sender: 'user', text: input }]);
-      const response = await axios.post('http://localhost:8000/chat', { user_query: input });
-      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: response.data.response }]);
+      setIsGenerating(true);
+      try{
+        const response = await axios.post('http://localhost:8000/chat', { user_query: input });
+        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: response.data.response }]);
+      } catch (error) {
+        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: 'An error occurred. Please try again.' }]);
+      } finally {
+        setIsGenerating(false);
+      }
       setInput('');
     }
   };
 
   return (
     <div className="chatbot-container">
-      <div className="chatbot-icon" onClick={toggleChatbot}>
+      <div className={`chatbot-icon ${isOpen ? 'open' : ''}`} onClick={toggleChatbot}>
         💬
       </div>
       {isOpen && (
@@ -35,6 +43,12 @@ const Chatbot: React.FC = () => {
                 <div className="text">{msg.text}</div>
               </div>
             ))}
+            {isGenerating && (
+              <div className="message bot">
+                <div className="icon">🤖</div>
+                <div className="spinner"></div>
+              </div>
+            )}
           </div>
           <div className="chat-input">
             <input
@@ -44,7 +58,7 @@ const Chatbot: React.FC = () => {
               placeholder="Ask a question..."
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
             />
-            <button onClick={sendMessage}>Send</button>
+            <button onClick={sendMessage} disabled={isGenerating}>Send</button>
           </div>
         </div>
       )}
