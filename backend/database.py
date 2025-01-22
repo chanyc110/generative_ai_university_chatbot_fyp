@@ -19,18 +19,24 @@ index = pc.Index("website-chatbot")
 client = OpenAI(
     api_key= os.getenv('OPENAI_API_KEY')
 )
-# namespace = 'foundation-in-science'
 
-    
+
+
 
 # List of URLs to scrape
 urls = [
     
-    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering',
-    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education'
-    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management'
-    # 'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science'
+    #'https://www.nottingham.edu.my/ugstudy/course/foundation-in-engineering',
+    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-arts-and-education',
+    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-business-and-management',
+    'https://www.nottingham.edu.my/ugstudy/course/foundation-in-science'
 ]
+
+def extract_namespace_from_url(url):
+    # Extract the last part of the URL after the last '/'
+    namespace = url.rstrip('/').split('/')[-1]
+    print(f"Extracted namespace: {namespace}")
+    return namespace
 
 # Function to load documents from URLs
 def load_documents(urls):
@@ -54,7 +60,7 @@ def split_documents(documents, chunk_size=1000, chunk_overlap=0):
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # Function to upsert vectors into Pinecone
-def upsert_vectors_to_pinecone(docs, namespace="foundation-in-engineering", index=None):
+def upsert_vectors_to_pinecone(docs, namespace):
     
     
     print("\n--- Upserting vectors to Pinecone ---")
@@ -70,28 +76,33 @@ def upsert_vectors_to_pinecone(docs, namespace="foundation-in-engineering", inde
 
 # Step 5: Query the vector store
 def search_similar_vectors(user_query):
+    
+    namespace = determine_namespace(user_query)
     # Create embedding for the query
     query_embedding = embeddings.embed_query(user_query)
     # Query Pinecone
-    result = index.query(vector=query_embedding, top_k=3, include_metadata=True, namespace='foundation-in-engineering')
+    result = index.query(vector=query_embedding, top_k=3, include_metadata=True, namespace=namespace)
     print(result)
     # Extract content from the results
     context = "\n".join([match["metadata"].get("content", "") for match in result["matches"]])
     return context
 
 # Main function to execute the process
-def process_and_store_documents(urls, index):
-    documents = load_documents(urls)
-    docs = split_documents(documents)
-    upsert_vectors_to_pinecone(docs, index)
-
-
-
-
-
-
-
+def process_and_store_documents(urls):
     
+    for url in urls:
+        namespace = extract_namespace_from_url(url)
+        documents = load_documents([url])
+        docs = split_documents(documents)
+        upsert_vectors_to_pinecone(docs, namespace)
+
+
+
+
+
+
+
+
 namespace_mapping = {
     ("arts", "education", "foundation"): "foundation-in-arts-and-education",
     ("science", "foundation"): "foundation-in-science",
@@ -115,3 +126,5 @@ def determine_namespace(query: str) -> Optional[str]:
 
 
 """To run"""
+if __name__ == "__main__":
+    process_and_store_documents(urls)
