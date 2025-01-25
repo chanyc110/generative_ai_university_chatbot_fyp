@@ -137,6 +137,8 @@ class MenuPage extends StatelessWidget {
 
 class ChatHistory {
   static List<Map<String, String>> messages = [];
+  static List<String> chatNames = ["Chat 1"];
+  static List<List<Map<String, String>>> chatHistories = [[]];
 }
 
 class ChatbotPage extends StatefulWidget {
@@ -152,11 +154,62 @@ class _ChatbotPageState extends State<ChatbotPage> {
   final TextEditingController _queryController = TextEditingController();
   late List<Map<String, String>> _messages; // Store messages
   bool _isLoading = false;
+  int _selectedChatIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _messages = List.from(widget.messages);
+  }
+
+  void _switchChat(int index) {
+    setState(() {
+      _selectedChatIndex = index;
+      _messages = List.from(ChatHistory.chatHistories[index]);
+    });
+  }
+
+  void _addNewChat() {
+    setState(() {
+      ChatHistory.chatNames.add("Chat ${ChatHistory.chatNames.length + 1}");
+      ChatHistory.chatHistories.add([]);
+      _switchChat(ChatHistory.chatNames.length - 1);
+    });
+  }
+
+  Future<void> _renameChat(int index) async {
+    TextEditingController renameController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Rename Chat'),
+          content: TextField(
+            controller: renameController,
+            decoration: InputDecoration(hintText: 'Enter new chat name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  ChatHistory.chatNames[index] = renameController.text.isNotEmpty
+                      ? renameController.text
+                      : ChatHistory.chatNames[index];
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _sendMessage() async {
@@ -181,7 +234,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
       });
 
       // Update shared history only once at the end
-      ChatHistory.messages = List.from(_messages);
+      ChatHistory.chatHistories[_selectedChatIndex] = List.from(_messages);
     } finally {
       setState(() {
         _isLoading = false;
@@ -214,6 +267,59 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Chatbot'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.menu),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return Align(
+                    alignment: Alignment.centerRight,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Material(
+                        color: Colors.white,
+                        elevation: 8,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: ChatHistory.chatNames.length,
+                                itemBuilder: (context, index) {
+                                  return ListTile(
+                                    title: Text(ChatHistory.chatNames[index]),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      _switchChat(index);
+                                    },
+                                    trailing: IconButton(
+                                      icon: Icon(Icons.edit),
+                                      onPressed: () {
+                                        _renameChat(index);
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ElevatedButton(
+                                onPressed: _addNewChat,
+                                child: Text('Add New Chat'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -296,4 +402,5 @@ class _ChatbotPageState extends State<ChatbotPage> {
       ),
     );
   }
+
 }
