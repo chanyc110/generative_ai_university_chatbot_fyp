@@ -1,0 +1,277 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Login App',
+      home: LoginPage(),
+    );
+  }
+}
+
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final FocusNode _usernameFocusNode = FocusNode();
+
+  String _username = "user"; // Dummy username
+  String _password = "password"; // Dummy password
+
+  
+
+  void _login() {
+    if (_formKey.currentState!.validate()) {
+      if (_usernameController.text == _username &&
+          _passwordController.text == _password) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => MenuPage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid username or password')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Login'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                focusNode: _usernameFocusNode,
+                controller: _usernameController,
+                decoration: InputDecoration(labelText: 'Username'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your username';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: 'Password'),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _login,
+                child: Text('Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MenuPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Menu'),
+      ),
+      body: Center(
+        child: GridView.count(
+          crossAxisCount: 2,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChatbotPage()),
+                );
+              },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.chat,
+                    size: 50,
+                    color: Colors.blue,
+                  ),
+                  SizedBox(height: 10),
+                  Text('Chatbot'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class ChatbotPage extends StatefulWidget {
+  @override
+  _ChatbotPageState createState() => _ChatbotPageState();
+}
+
+class _ChatbotPageState extends State<ChatbotPage> {
+  final TextEditingController _queryController = TextEditingController();
+  final List<Map<String, String>> _messages = []; // Store messages
+  bool _isLoading = false;
+
+  Future<void> _sendMessage() async {
+    final userQuery = _queryController.text;
+    if (userQuery.isEmpty) return;
+
+    // Add user's query to the chat
+    setState(() {
+      _messages.add({"sender": "user", "message": userQuery});
+      _isLoading = true;
+    });
+    _queryController.clear();
+
+    // Simulate sending a request to the API
+    final response = await _fetchChatbotResponse(userQuery);
+
+    // Add chatbot's response to the chat
+    setState(() {
+      _messages.add({"sender": "bot", "message": response});
+      _isLoading = false;
+    });
+  }
+
+  Future<String> _fetchChatbotResponse(String userQuery) async {
+    const String apiUrl = 'http://10.0.2.2:8000/chat';
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_query": userQuery}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data["response"] ?? "Sorry, I couldn't understand that.";
+      } else {
+        return "Error: Unable to fetch response.";
+      }
+    } catch (e) {
+      return "Error: $e";
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Chatbot'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                final isUser = message["sender"] == "user";
+                return Row(
+                  mainAxisAlignment:
+                      isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  children: [
+                    if (!isUser)
+                      CircleAvatar(
+                        child: Icon(Icons.smart_toy),
+                        backgroundColor: Colors.grey[300],
+                      ),
+                    Flexible(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isUser ? Colors.blue[100] : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          message["message"] ?? "",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    if (isUser)
+                      CircleAvatar(
+                        child: Icon(Icons.person),
+                        backgroundColor: Colors.blue[100],
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          if (_isLoading)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 10),
+                  Text("Typing...")
+                ],
+              ),
+            ),
+          Divider(height: 1),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _queryController,
+                    decoration: InputDecoration(
+                      hintText: "Ask a question...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.send, color: Colors.blue),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
