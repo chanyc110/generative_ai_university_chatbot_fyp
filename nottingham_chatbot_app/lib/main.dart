@@ -112,7 +112,7 @@ class MenuPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ChatbotPage()),
+                  MaterialPageRoute(builder: (context) => ChatbotPage(messages: ChatHistory.messages)),
                 );
               },
               child: Column(
@@ -135,19 +135,34 @@ class MenuPage extends StatelessWidget {
   }
 }
 
+class ChatHistory {
+  static List<Map<String, String>> messages = [];
+}
 
 class ChatbotPage extends StatefulWidget {
+  final List<Map<String, String>> messages;
+
+  ChatbotPage({required this.messages});
+
   @override
   _ChatbotPageState createState() => _ChatbotPageState();
 }
 
 class _ChatbotPageState extends State<ChatbotPage> {
   final TextEditingController _queryController = TextEditingController();
-  final List<Map<String, String>> _messages = []; // Store messages
+  late List<Map<String, String>> _messages; // Store messages
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _messages = List.from(widget.messages);
+  }
+
   Future<void> _sendMessage() async {
-    final userQuery = _queryController.text;
+    if (_isLoading) return; // Prevent duplicate requests
+
+    final userQuery = _queryController.text.trim();
     if (userQuery.isEmpty) return;
 
     // Add user's query to the chat
@@ -157,14 +172,21 @@ class _ChatbotPageState extends State<ChatbotPage> {
     });
     _queryController.clear();
 
-    // Simulate sending a request to the API
-    final response = await _fetchChatbotResponse(userQuery);
+    try{
+      // Simulate sending a request to the API
+      final response = await _fetchChatbotResponse(userQuery);
+      // Add chatbot's response to the chat
+      setState(() {
+        _messages.add({"sender": "bot", "message": response});
+      });
 
-    // Add chatbot's response to the chat
-    setState(() {
-      _messages.add({"sender": "bot", "message": response});
-      _isLoading = false;
-    });
+      // Update shared history only once at the end
+      ChatHistory.messages = List.from(_messages);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<String> _fetchChatbotResponse(String userQuery) async {
@@ -265,7 +287,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 SizedBox(width: 8),
                 IconButton(
                   icon: Icon(Icons.send, color: Colors.blue),
-                  onPressed: _sendMessage,
+                  onPressed: _isLoading ? null : _sendMessage, // Disable while loading
                 ),
               ],
             ),
