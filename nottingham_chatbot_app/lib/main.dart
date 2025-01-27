@@ -182,35 +182,37 @@ class _ChatbotPageState extends State<ChatbotPage> {
     showDialog(
       context: context,
       builder: (context) {
-        return Align(
-          alignment: Alignment.centerRight,
-          child: FractionallySizedBox(
-            widthFactor: 0.5,
-            child: Material(
-              color: Colors.white,
-              elevation: 8,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: ChatHistory.chatNames.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(ChatHistory.chatNames[index]),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _switchChat(index);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Align(
+              alignment: Alignment.centerRight,
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                child: Material(
+                  color: Colors.white,
+                  elevation: 8,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: ChatHistory.chatNames.length,
+                          itemBuilder: (context, index) {
+                            return ListTile(
+                              title: Text(ChatHistory.chatNames[index]),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _switchChat(index);
+                              },
+                              trailing: IconButton(
+                                icon: Icon(Icons.edit),
+                                onPressed: () {
+                                  _renameChat(index, setState);
+                                },
+                              ),
+                            );
                           },
-                          trailing: IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () {
-                              _renameChat(index);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
+                      ),
                   Divider(),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -226,18 +228,20 @@ class _ChatbotPageState extends State<ChatbotPage> {
                         Navigator.pop(context);
                       },
                       child: Text('Close'),
-                    ),
+                      ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Future<void> _renameChat(int index) async {
+  Future<void> _renameChat(int index, void Function(void Function()) setSidebarState) async {
     TextEditingController renameController = TextEditingController();
     await showDialog(
       context: context,
@@ -262,6 +266,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                       ? renameController.text
                       : ChatHistory.chatNames[index];
                 });
+                setSidebarState(() {});
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -336,6 +341,15 @@ class _ChatbotPageState extends State<ChatbotPage> {
       ),
       body: Column(
         children: [
+        Container(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Center(
+              child: Text(
+                ChatHistory.chatNames[_selectedChatIndex],
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
           Expanded(
             child: ListView.builder(
               itemCount: _messages.length,
