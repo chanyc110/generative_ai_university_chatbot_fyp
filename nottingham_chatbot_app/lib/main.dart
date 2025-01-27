@@ -173,8 +173,68 @@ class _ChatbotPageState extends State<ChatbotPage> {
     setState(() {
       ChatHistory.chatNames.add("Chat ${ChatHistory.chatNames.length + 1}");
       ChatHistory.chatHistories.add([]);
-      _switchChat(ChatHistory.chatNames.length - 1);
     });
+    Navigator.pop(context); // Close the previous sidebar
+    _showSidebar();
+  }
+
+  void _showSidebar() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: FractionallySizedBox(
+            widthFactor: 0.5,
+            child: Material(
+              color: Colors.white,
+              elevation: 8,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: ChatHistory.chatNames.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(ChatHistory.chatNames[index]),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _switchChat(index);
+                          },
+                          trailing: IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              _renameChat(index);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Divider(),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: _addNewChat,
+                      child: Text('Add New Chat'),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text('Close'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _renameChat(int index) async {
@@ -270,55 +330,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.menu),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return Align(
-                    alignment: Alignment.centerRight,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: Material(
-                        color: Colors.white,
-                        elevation: 8,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: ChatHistory.chatNames.length,
-                                itemBuilder: (context, index) {
-                                  return ListTile(
-                                    title: Text(ChatHistory.chatNames[index]),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      _switchChat(index);
-                                    },
-                                    trailing: IconButton(
-                                      icon: Icon(Icons.edit),
-                                      onPressed: () {
-                                        _renameChat(index);
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ElevatedButton(
-                                onPressed: _addNewChat,
-                                child: Text('Add New Chat'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+            onPressed:   _showSidebar,
+            ),
         ],
       ),
       body: Column(
