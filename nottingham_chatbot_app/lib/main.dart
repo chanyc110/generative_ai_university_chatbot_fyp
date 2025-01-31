@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'chatbot_page.dart';
+import 'sports_complex_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -124,6 +125,26 @@ class MenuPage extends StatelessWidget {
                   ),
                   SizedBox(height: 10),
                   Text('Chatbot'),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SportsComplexPage()),
+                );
+              },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.sports,
+                    size: 50,
+                    color: Colors.green,
+                  ),
+                  SizedBox(height: 10),
+                  Text('Sports Complex Booking'),
                 ],
               ),
             ),
