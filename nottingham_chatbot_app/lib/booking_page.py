@@ -54,9 +54,9 @@ try:
         time.sleep(2)  # Allow additional time for elements to be interactive
 
         # Step 8: Select Gymnasium option using JavaScript click
-        venue_radio_button = driver.find_element(By.CSS_SELECTOR, "input[id='venue'][value='{venue}']")
+        venue_radio_button = driver.find_element(By.CSS_SELECTOR, f"input[id='venue'][value='{venue}']")
         driver.execute_script("arguments[0].click();", venue_radio_button)
-        print("Gymnasium selected!")
+        print("venue selected!")
         
         # Step 9: Click the Next button to proceed
         next_button = driver.find_element(By.ID, "assignmentComplete")
@@ -79,7 +79,7 @@ try:
         print("Booking date selected!")
         
         # Step 12: Select Session (9:00 - 10:00)
-        session_radio_button = driver.find_element(By.CSS_SELECTOR, "input[id='session'][value='{session}']")
+        session_radio_button = driver.find_element(By.CSS_SELECTOR, f"input[id='session'][value='{session}']")
         driver.execute_script("arguments[0].click();", session_radio_button)
         print("Session selected!")
         
