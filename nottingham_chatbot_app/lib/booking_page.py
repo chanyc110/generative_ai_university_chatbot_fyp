@@ -5,6 +5,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import sys
+
+# Retrieve arguments from FastAPI request
+username, password, venue, contact_no, purpose, date, session = sys.argv[1:]
 
 # Base URL
 base_url = "https://apps.nottingham.edu.my"
@@ -24,8 +28,8 @@ try:
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "OWASP_CSRFTOKEN")))
 
     # Step 2: Enter login credentials
-    driver.find_element(By.ID, "j_username").send_keys("hcyyc7")  # Replace with actual username
-    driver.find_element(By.ID, "j_password").send_keys("CyC399339!")  # Replace with actual password
+    driver.find_element(By.ID, "j_username").send_keys(username)  # Replace with actual username
+    driver.find_element(By.ID, "j_password").send_keys(password)  # Replace with actual password
 
     # Step 3: Click the login button
     login_button = driver.find_element(By.CSS_SELECTOR, "input[name='submit']")
@@ -33,10 +37,6 @@ try:
 
     # Step 4: Wait for post-login page to load
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "app-link")))
-
-    # Step 5: Open the gym and swimming pool booking page
-    # booking_page_url = f"{base_url}/jw/web/userview/booking/v"
-    # driver.get(booking_page_url)
 
     # Step 5: Open the New Booking page directly
     new_booking_page_url = f"{base_url}/jw/web/userview/booking/v/_/request"
@@ -54,8 +54,8 @@ try:
         time.sleep(2)  # Allow additional time for elements to be interactive
 
         # Step 8: Select Gymnasium option using JavaScript click
-        gym_radio_button = driver.find_element(By.CSS_SELECTOR, "input[id='venue'][value='45419910-a0000040-5b1ba29c-fcac248d']")
-        driver.execute_script("arguments[0].click();", gym_radio_button)
+        venue_radio_button = driver.find_element(By.CSS_SELECTOR, "input[id='venue'][value='{venue}']")
+        driver.execute_script("arguments[0].click();", venue_radio_button)
         print("Gymnasium selected!")
         
         # Step 9: Click the Next button to proceed
@@ -65,21 +65,21 @@ try:
         
         # Step 10: Fill out additional fields
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "contact_no")))
-        driver.find_element(By.ID, "contact_no").send_keys("0123456789")
+        driver.find_element(By.ID, "contact_no").send_keys(contact_no)
         print("Contact number entered.")
         
-        driver.find_element(By.ID, "purpose").send_keys("Personal Training")
+        driver.find_element(By.ID, "purpose").send_keys(purpose)
         print("Purpose entered.")
         
         # Step 11: Select Booking Date from Calendar
         date_picker = driver.find_element(By.ID, "booking_date__1665888614947936754611897066452")
         driver.execute_script("arguments[0].removeAttribute('readonly')", date_picker)  # Remove readonly attribute
         date_picker.clear()
-        date_picker.send_keys("Tue, 28-January-2025")  # Replace with desired date
+        date_picker.send_keys(date)  # Replace with desired date
         print("Booking date selected!")
         
         # Step 12: Select Session (9:00 - 10:00)
-        session_radio_button = driver.find_element(By.CSS_SELECTOR, "input[id='session'][value='ee0108db-a0000040-6172fc20-ad779c80']")
+        session_radio_button = driver.find_element(By.CSS_SELECTOR, "input[id='session'][value='{session}']")
         driver.execute_script("arguments[0].click();", session_radio_button)
         print("Session selected!")
         
@@ -103,6 +103,7 @@ finally:
 
 
 # gym button <input id="venue" name="venue" type="radio" value="45419910-a0000040-5b1ba29c-fcac248d">
+# swimming pool <input id="venue" name="venue" type="radio" value="58e58998-a0000040-1455f332-fa3a484b">
 # next button <input id="assignmentComplete" name="assignmentComplete" class="waves-button-input" type="submit" value="Next" style="background-color:rgba(0,0,0,0);">
 
 # contact number field <input id="contact_no" name="contact_no" class="textfield__166588861443415107021139876928" type="text" placeholder="" value="">
