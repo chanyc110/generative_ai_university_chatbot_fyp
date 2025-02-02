@@ -25,6 +25,15 @@ class _SportsComplexPageState extends State<SportsComplexPage> {
   void _loadChatHistory() {
     setState(() {
       _messages = List.from(SportsChatHistory.messages);
+      if (_messages.isEmpty) {
+      // Initial bot message when the chat opens
+      final initialBotMessage = {
+        "sender": "bot",
+        "message": "Welcome! To start a new booking, please type 'new booking'."
+      };
+      _messages.add(initialBotMessage);
+      SportsChatHistory.messages.add(initialBotMessage);
+    }
     });
   }
 
@@ -55,7 +64,7 @@ class _SportsComplexPageState extends State<SportsComplexPage> {
   }
 
   Future<String> _fetchChatbotResponse(String userQuery) async {
-    const String apiUrl = 'http://10.0.2.2:8000/chat';
+    const String apiUrl = 'http://10.0.2.2:8000/make_booking';
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
