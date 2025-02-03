@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SportsChatHistory {
   static List<Map<String, String>> messages = [];
@@ -36,8 +37,19 @@ class _SportsComplexPageState extends State<SportsComplexPage> {
   };
 
   final Map<String, String> _sessionOptions = {
-    "9-10": "c6d16693-a0000040-615864a2-402fab7d",
-    "5-6": "ee0108db-a0000040-6172fc20-ad779c80"
+    "9:00-10:00": "c6d16693-a0000040-615864a2-402fab7d",
+    "10:00-11:00": "c6d1ac35-a0000040-615864a2-61c96c66",
+    "11:00-12:00": "c6d20e93-a0000040-615864a2-c037c48b",
+    "12:00-13:00": "c6d25844-a0000040-615864a2-12091de1",
+    "13:00-14:00": "c6d29059-a0000040-615864a2-b4d798aa",
+    "14:00-15:00": "c6d2ccba-a0000040-615864a2-67b88e72",
+    "15:00-16:00": "edffb708-a0000040-6172fc20-31ac65ef",
+    "16:00-17:00": "ee004999-a0000040-6172fc20-e376cb65",
+    "17:00-18:00": "ee0108db-a0000040-6172fc20-ad779c80",
+    "18:00-19:00": "ee01a0e4-a0000040-6172fc20-1343ffe4",
+    "19:00-20:00": "ee026949-a0000040-6172fc20-9da67405",
+    "20:00-21:00": "ee042e7b-a0000040-6172fc20-5b647abc",
+    "21:00-22:00 (Closed on Sunday)": "6e8d4154-a0000040-b1ed43b0-e197ac1c"
   };
 
   @override
@@ -86,14 +98,24 @@ class _SportsComplexPageState extends State<SportsComplexPage> {
     }
   }
 
-  void _startBookingProcess() {
+  Future<void> _startBookingProcess() async {
+  final prefs = await SharedPreferences.getInstance();
+  String? storedUsername = prefs.getString('username');
+  String? storedPassword = prefs.getString('password');
+
+  if (storedUsername != null && storedPassword != null) {
     setState(() {
       _bookingDetails.clear();
-      _currentStep = 0;
-      _addBotMessage("Let's start your booking! Please enter your username.");
-      _isLoading = false;
+      _bookingDetails["username"] = storedUsername;
+      _bookingDetails["password"] = storedPassword;
+      _currentStep = 2; // Skip username entry
+      _addBotMessage("Using your logged-in account ($storedUsername) for booking.");
+      _askForNextStep();
     });
+  } else {
+    _addBotMessage("Error: You are not logged in. Please log in again.");
   }
+}
 
     void _processBookingStep(String userResponse) {
     if (_currentStep < _bookingSteps.length) {
@@ -211,24 +233,26 @@ String _getMonth(int month) {
       builder: (context) {
         return AlertDialog(
           title: Text(message),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.entries.map((entry) {
-              return ListTile(
-                title: Text(entry.key),
-                leading: Radio<String>(
-                  value: entry.value,
-                  groupValue: _bookingDetails[_bookingSteps[_currentStep]],
-                  onChanged: (value) {
-                    setState(() {
-                      _bookingDetails[_bookingSteps[_currentStep]] = value!;
-                      Navigator.pop(context);
-                      _processBookingStep(value);
-                    });
-                  },
-                ),
-              );
-            }).toList(),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: options.entries.map((entry) {
+                return ListTile(
+                  title: Text(entry.key),
+                  leading: Radio<String>(
+                    value: entry.value,
+                    groupValue: _bookingDetails[_bookingSteps[_currentStep]],
+                    onChanged: (value) {
+                      setState(() {
+                        _bookingDetails[_bookingSteps[_currentStep]] = value!;
+                        Navigator.pop(context);
+                        _processBookingStep(value);
+                      });
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         );
       },
@@ -247,7 +271,11 @@ String _getMonth(int month) {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        // Format booking details (excluding password)
+        String bookingDetails = _formatBookingDetails(_bookingDetails);
         _addBotMessage(data["response"] ?? "Your booking has been confirmed!");
+        _addBotMessage("✅ **Booking Details:**\n$bookingDetails");
       } else {
         _addBotMessage("Error: Unable to confirm booking.");
       }
@@ -260,6 +288,26 @@ String _getMonth(int month) {
       });
     }
   }
+
+  String _formatBookingDetails(Map<String, String> details) {
+  // Reverse lookup for venue and session names
+  String venueLabel = _venueOptions.entries
+    .firstWhere((entry) => entry.value == details["venue"], orElse: () => MapEntry("Unknown", ""))
+    .key;
+
+  String sessionLabel = _sessionOptions.entries
+      .firstWhere((entry) => entry.value == details["session"], orElse: () => MapEntry("Unknown", ""))
+      .key;
+
+  return details.entries
+      .where((entry) => entry.key != "password") // Exclude password
+      .map((entry) {
+        if (entry.key == "venue") return "**Venue:** $venueLabel";  // Convert venue UUID to label
+        if (entry.key == "session") return "**Session:** $sessionLabel"; // Convert session UUID to label
+        return "**${entry.key}:** ${entry.value}"; // Keep other values as-is, return key pair values
+      })
+      .join("\n");
+}
 
   Future<String> _fetchChatbotResponse(String userQuery) async {
     const String apiUrl = 'http://10.0.2.2:8000/make_booking';
