@@ -99,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: _login,
                 child: Text('Login'),
               ),
-              SizedBox(height: 10), // Adds space between buttons
+              SizedBox(height: 10),
               TextButton(
                 onPressed: () {
                   Navigator.push(
@@ -118,11 +118,34 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class MenuPage extends StatelessWidget {
+
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // ✅ Securely remove username and password from storage
+    await prefs.remove('username');
+    await prefs.remove('password');
+
+    // ✅ Navigate back to the login page & remove this page from history
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+      (route) => false, // Remove all previous routes
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Menu'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () => _logout(context), // ✅ Call logout function
+            tooltip: "Logout",
+          ),
+        ],
       ),
       body: Center(
         child: GridView.count(
