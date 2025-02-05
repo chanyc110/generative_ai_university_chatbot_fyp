@@ -4,6 +4,7 @@ import 'sports_complex_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 import 'register_page.dart';
+import 'reminder_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -188,6 +189,26 @@ class MenuPage extends StatelessWidget {
                   ),
                   SizedBox(height: 10),
                   Text('Sports Complex Booking'),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ReminderPage()), // ✅ Navigate to ReminderPage
+                );
+              },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.alarm,
+                    size: 50,
+                    color: Colors.orange,
+                  ),
+                  SizedBox(height: 10),
+                  Text('Reminders'),
                 ],
               ),
             ),

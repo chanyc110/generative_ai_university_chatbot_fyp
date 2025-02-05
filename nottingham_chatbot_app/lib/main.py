@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import subprocess
 import sys
 
-print(sys.executable)
 
 app = FastAPI()
 
