@@ -42,8 +42,29 @@ class _ReminderPageState extends State<ReminderPage> {
 
   Future<void> _initializeNotifications() async {
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initSettings = InitializationSettings(android: androidSettings);
-    await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+    final AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'reminder_channel', // ✅ Make sure this matches your scheduled notification channel
+    'Reminders',
+    description: 'Channel for reminder notifications',
+    importance: Importance.high,
+    );
+
+    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidImplementation?.createNotificationChannel(channel);
+
+    final InitializationSettings initSettings = InitializationSettings(android: androidSettings);
+    await flutterLocalNotificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        print("🔔 Notification Clicked: ${response.payload}");
+      },
+    );
+
+    await flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()?.requestNotificationsPermission();
   }
 
   Future<void> _sendMessage() async {
@@ -144,6 +165,10 @@ class _ReminderPageState extends State<ReminderPage> {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   List<String>? reminders = prefs.getStringList('reminders') ?? [];
 
+  // ✅ Cancel previous notification for this title
+  int notificationId = title.hashCode;
+  await flutterLocalNotificationsPlugin.cancel(notificationId);
+
   Map<String, dynamic> newReminder = {
     'title': title,
     'dateTime': dateTime.toIso8601String(),
@@ -152,6 +177,8 @@ class _ReminderPageState extends State<ReminderPage> {
 
   reminders.add(jsonEncode(newReminder));
   await prefs.setStringList('reminders', reminders);
+
+  print("✅ Reminder Saved: $title at ${dateTime.toLocal()}");
 }
 
 Future<List<Map<String, dynamic>>> _loadReminders() async {
@@ -160,19 +187,21 @@ Future<List<Map<String, dynamic>>> _loadReminders() async {
   
   DateTime now = DateTime.now();
 
-  print("⏳ Current Time: ${now.toIso8601String()}");
+  print("⏳ Current Time: ${now.toLocal()}");
   
   List<Map<String, dynamic>> validReminders = [];
   List<String> updatedReminders = [];
 
   for (String r in reminders) {
     Map<String, dynamic> reminder = jsonDecode(r);
-    DateTime reminderTime = DateTime.parse(reminder['dateTime']); // ✅ Convert reminder time to local
+    DateTime reminderTime = DateTime.parse(reminder['dateTime']).toLocal(); // ✅ Convert reminder time to local
 
     if (reminderTime.isAfter(now)) {
       validReminders.add(reminder);
       updatedReminders.add(jsonEncode(reminder)); // ✅ Keep valid reminders
     } else {
+      int notificationId = reminder['title'].hashCode;
+      await flutterLocalNotificationsPlugin.cancel(notificationId);
       print("🗑 Expired reminder removed: ${reminder['title']} at $reminderTime ");
     }
   }
@@ -186,6 +215,10 @@ Future<List<Map<String, dynamic>>> _loadReminders() async {
   Future<void> _scheduleNotification(String title, DateTime dateTime, int remindBeforeMinutes) async {
     DateTime notifyTime = dateTime.subtract(Duration(minutes: remindBeforeMinutes));
 
+    print("🔍 Checking Notification Time:");
+    print("   - Current Time: ${DateTime.now().toLocal()}");
+    print("   - Notification Time: ${notifyTime.toLocal()}");
+
     if (notifyTime.isAfter(DateTime.now())) {
       try{
       AndroidNotificationDetails androidDetails = const AndroidNotificationDetails(
@@ -193,28 +226,24 @@ Future<List<Map<String, dynamic>>> _loadReminders() async {
         'Reminders',
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
       );
       NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
       print("✅ Scheduling Notification: $title at $notifyTime"); // log
 
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        title.hashCode,
-        'Reminder',
-        title,
-        tz.TZDateTime.from(notifyTime, tz.local),
-        platformDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      );
+      Future.delayed(notifyTime.difference(DateTime.now()), () async {
+        await flutterLocalNotificationsPlugin.show(
+          title.hashCode,
+          'Reminder',
+          title,
+          platformDetails,
+        );
 
-      // Remove reminder after notification
-      Future.delayed(Duration(minutes: remindBeforeMinutes + 1), () {
-        setState(() {
-          _messages.removeWhere((msg) => msg["message"]?.contains(title) ?? false);
-        });
+        print("🔔 Reminder Triggered: $title");
       });
+
     } catch (e) {
       print("❌ Error scheduling notification: $e");
     }
@@ -222,6 +251,29 @@ Future<List<Map<String, dynamic>>> _loadReminders() async {
     print("⏳ Cannot schedule notification in the past!");
   }
   }
+
+  Future<void> _testNotification() async {
+  AndroidNotificationDetails androidDetails = const AndroidNotificationDetails(
+    'test_channel',  // ✅ Make sure this matches an existing notification channel ID
+    'Test Notifications',
+    importance: Importance.high,
+    priority: Priority.high,
+    playSound: true, // ✅ Ensure sound is enabled
+    enableVibration: true, // ✅ Enable vibration
+  );
+  
+  NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    999, // Unique ID
+    '🚀 Test Notification',
+    'This is a test notification!',
+    platformDetails,
+  );
+
+  print("✅ Test Notification Sent!");
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +333,21 @@ Future<List<Map<String, dynamic>>> _loadReminders() async {
               ),
             ),
           Divider(height: 1),
+
+           // ✅ Test Notification Button
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton.icon(
+              onPressed: _testNotification, // ✅ Calls test function
+              icon: Icon(Icons.notifications_active),
+              label: Text("Test Notification"),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                textStyle: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             child: Row(
