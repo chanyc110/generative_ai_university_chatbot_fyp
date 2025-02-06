@@ -5,7 +5,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_community.llms import Ollama # Assumes you have a compatible Ollama client
 from fastapi.middleware.cors import CORSMiddleware
-from database import*
+from database_v2 import*
 from openai import OpenAI
 from langchain.chat_models import ChatOpenAI
 
