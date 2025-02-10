@@ -6,6 +6,7 @@ from langchain.chains import LLMChain
 from langchain_community.llms import Ollama # Assumes you have a compatible Ollama client
 from fastapi.middleware.cors import CORSMiddleware
 from database_v2 import*
+from chatbot_functions import*
 from openai import OpenAI
 from langchain.chat_models import ChatOpenAI
 
@@ -44,7 +45,18 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 @app.post("/chat")
 async def chat(query: QueryRequest):
-    context = search_similar_vectors(query.user_query)
-    print("Context:", context)
-    response = llm_chain.run(context=context, user_query=query.user_query)
-    return {"response": response}
+    intent = classify_user_intent(query.user_query)
+
+    if intent == "recommendation":
+        recommendation_result = recommend_courses(query.user_query)
+        return {"courses": recommendation_result["courses"], "response": recommendation_result["response"]}
+
+    # elif intent == "course_comparison":
+    #     comparison_result = compare_courses(query.user_query)
+    #     return {"response": comparison_result}
+
+    else:
+        # Default: Answer specific course queries using RAG
+        context = search_similar_vectors(query.user_query)
+        response = llm_chain.run(context=context, user_query=query.user_query)
+        return {"response": response}

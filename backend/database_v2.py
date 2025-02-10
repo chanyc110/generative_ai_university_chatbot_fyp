@@ -22,12 +22,19 @@ JINA_READER_URL = "https://r.jina.ai/"
 
 urls = [
     #'https://www.nottingham.edu.my/ugstudy/course/nottingham-foundation-programme',
-    "https://www.nottingham.edu.my/ugstudy/course/computer-science-bsc-hons"
+    #"https://www.nottingham.edu.my/ugstudy/course/computer-science-bsc-hons",
+    "https://www.nottingham.edu.my/ugstudy/course/computer-science-with-artificial-intelligence-bsc-hons"
+    #"https://www.nottingham.edu.my/pgstudy/course/research/computer-science-mphil-phd",
+    #"https://www.nottingham.edu.my/Study/Fees-and-Scholarships/Scholarships/Foundation-undergraduate-scholarships.aspx"
+    
+    #https://www.nottingham.edu.my/Study/Make-an-enquiry/Enquire-now.aspx   contact real people info
+    #https://www.nottingham.edu.my/Study/How-to-apply/how-to-apply.aspx how to apply
 ]
 
 # Extract namespace from URL
 def extract_namespace_from_url(url):
-    return url.rstrip('/').split('/')[-1]
+    namespace=  url.rstrip('/').split('/')[-1]
+    return namespace.replace(".aspx", "")  # Remove .aspx if it exists
 
 # Use Jina AI to extract LLM-friendly text
 def extract_clean_text(url):
@@ -83,63 +90,6 @@ def process_and_store_documents(urls):
         upsert_vectors_to_pinecone(chunks, namespace)
         
         
-# GPT-based namespace selection
-def determine_namespaces_with_gpt(user_query):
-    available_namespaces = [
-        "nottingham-foundation-programme",
-        "computer-science-bsc-hons"
-    ]
-
-    system_prompt = (
-        "You are an AI classifier that determines which namespaces are relevant "
-        "for a user's query. Choose one or more from the following list and return "
-        "a comma-separated list (e.g., 'namespace1, namespace2').\n"
-        f"Available namespaces: {', '.join(available_namespaces)}"
-    )
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"User query: {user_query}"}
-        ],
-        temperature=0
-    )
-
-    selected_namespaces = response.choices[0].message.content.strip().split(", ")
-    valid_namespaces = [ns for ns in selected_namespaces if ns in available_namespaces]
-
-    if valid_namespaces:
-        print(f"Selected namespaces: {valid_namespaces}")
-        return valid_namespaces
-    else:
-        print("GPT returned invalid namespaces. Defaulting to general query.")
-        return []
-    
-    
-# Query Pinecone based on selected namespaces
-def search_similar_vectors(user_query):
-    namespaces = determine_namespaces_with_gpt(user_query)
-    
-    if not namespaces:
-        return "Sorry, I couldn't determine the relevant section. Can you clarify your query?"
-
-    query_embedding = client.embeddings.create(
-        input=user_query,
-        model="text-embedding-3-small"  # Specify the embedding model
-    ).data[0].embedding
-    
-    results = []
-
-    for namespace in namespaces:
-        res = index.query(vector=query_embedding, top_k=3, include_metadata=True, namespace=namespace)
-        results.extend(res["matches"])
-
-    # Sort results by similarity score
-    sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)[:3]
-    context = "\n".join([match["metadata"].get("content", "") for match in sorted_results])
-
-    return context
 
 # Run the process to store documents
 if __name__ == "__main__":
