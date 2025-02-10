@@ -23,10 +23,18 @@ JINA_READER_URL = "https://r.jina.ai/"
 urls = [
     # 'https://www.nottingham.edu.my/ugstudy/course/nottingham-foundation-programme',
     # "https://www.nottingham.edu.my/ugstudy/course/computer-science-bsc-hons",
-    "https://www.nottingham.edu.my/ugstudy/course/computer-science-with-artificial-intelligence-bsc-hons",
-    "https://www.nottingham.edu.my/pgstudy/course/research/computer-science-mphil-phd",
+    # "https://www.nottingham.edu.my/ugstudy/course/computer-science-with-artificial-intelligence-bsc-hons",
+    # "https://www.nottingham.edu.my/pgstudy/course/research/computer-science-mphil-phd",
     # "https://www.nottingham.edu.my/Study/Fees-and-Scholarships/Scholarships/Foundation-undergraduate-scholarships.aspx",
     # "https://www.nottingham.edu.my/Study/Make-an-enquiry/Enquire-now.aspx"
+    # https://www.nottingham.edu.my/Study/How-to-apply/When-to-apply.aspx
+    
+    # facilities
+    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Sport.aspx",
+    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Swimming-pool.aspx",
+    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Health.aspx",
+    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Prayer.aspx",
+    "https://www.nottingham.edu.my/CurrentStudents/Facilities/amenities.aspx"
 ]
 
 # Extract namespace from URL
@@ -89,6 +97,28 @@ def process_and_store_documents(urls):
         
         
 
+def process_and_store_documents_with_namespace(urls, custom_namespace):
+    """
+    Processes and stores documents from URLs into a specified namespace.
+    
+    Parameters:
+        urls (list): List of URLs to scrape.
+        custom_namespace (str): The namespace where the extracted data should be stored.
+    """
+    for url in urls:
+        namespace = custom_namespace  # Use the user-defined namespace
+        print(f"Processing: {url} -> Namespace: {namespace}")
+
+        cleaned_text = extract_clean_text(url)
+        if not cleaned_text:
+            print(f"Skipping {url} due to extraction failure.")
+            continue
+
+        chunks = split_documents(cleaned_text)
+        upsert_vectors_to_pinecone(chunks, namespace, url)
+        
+
 # Run the process to store documents
 if __name__ == "__main__":
-    process_and_store_documents(urls)
+    #process_and_store_documents(urls)
+    process_and_store_documents_with_namespace(urls, "campus-facilities")  # Store in a custom namespace

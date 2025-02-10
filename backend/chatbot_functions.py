@@ -22,7 +22,9 @@ def determine_namespaces_with_gpt(user_query):
         "computer-science-bsc-hons": "Undergraduate computer science program details, including entry requirements, course structure, and modules.",
         "computer-science-with-artificial-intelligence-bsc-hons": "Undergraduate AI-focused computer science program details, including entry requirements, course structure, and modules.",
         "computer-science-mphil-phd": "Postgraduate computer science research program details.",
-        "Foundation-undergraduate-scholarships": "Information about foundation and undergraduate scholarships available at the university."
+        "Foundation-undergraduate-scholarships": "Information about foundation and undergraduate scholarships available at the university.",
+        "Enquire-now": "Contact information of the university(email, phone numbers), campus location and information",
+        "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities."
     }
 
     system_prompt = (
