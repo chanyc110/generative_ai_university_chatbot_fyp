@@ -21,14 +21,12 @@ JINA_API_KEY = "jina_833f960bd0b94f919920f4dabb63af001uiZNzo-5urqa6K9XmLOrk5Cgrb
 JINA_READER_URL = "https://r.jina.ai/"
 
 urls = [
-    #'https://www.nottingham.edu.my/ugstudy/course/nottingham-foundation-programme',
-    #"https://www.nottingham.edu.my/ugstudy/course/computer-science-bsc-hons",
-    "https://www.nottingham.edu.my/ugstudy/course/computer-science-with-artificial-intelligence-bsc-hons"
-    #"https://www.nottingham.edu.my/pgstudy/course/research/computer-science-mphil-phd",
-    #"https://www.nottingham.edu.my/Study/Fees-and-Scholarships/Scholarships/Foundation-undergraduate-scholarships.aspx"
-    
-    #https://www.nottingham.edu.my/Study/Make-an-enquiry/Enquire-now.aspx   contact real people info
-    #https://www.nottingham.edu.my/Study/How-to-apply/how-to-apply.aspx how to apply
+    # 'https://www.nottingham.edu.my/ugstudy/course/nottingham-foundation-programme',
+    # "https://www.nottingham.edu.my/ugstudy/course/computer-science-bsc-hons",
+    "https://www.nottingham.edu.my/ugstudy/course/computer-science-with-artificial-intelligence-bsc-hons",
+    "https://www.nottingham.edu.my/pgstudy/course/research/computer-science-mphil-phd",
+    # "https://www.nottingham.edu.my/Study/Fees-and-Scholarships/Scholarships/Foundation-undergraduate-scholarships.aspx",
+    # "https://www.nottingham.edu.my/Study/Make-an-enquiry/Enquire-now.aspx"
 ]
 
 # Extract namespace from URL
@@ -58,7 +56,7 @@ def split_documents(text, chunk_size=1000, chunk_overlap=200):
     return splitter.split_text(text)
 
 # Upsert vectors to Pinecone
-def upsert_vectors_to_pinecone(docs, namespace):
+def upsert_vectors_to_pinecone(docs, namespace, source_url):
     print(f"\n--- Upserting {len(docs)} chunks to Pinecone under namespace '{namespace}' ---")
 
     vectors = []
@@ -70,7 +68,7 @@ def upsert_vectors_to_pinecone(docs, namespace):
         )
         embedding = embedding_response.data[0].embedding
         
-        vectors.append((f"{namespace}-doc-{i}", embedding, {"namespace": namespace, "content": doc}))
+        vectors.append((f"{namespace}-doc-{i}", embedding, {"namespace": namespace, "content": doc, "source_url": source_url}))
 
     index.upsert(vectors=vectors, namespace=namespace)
     print(f"--- Finished upserting {len(vectors)} vectors ---")
@@ -87,7 +85,7 @@ def process_and_store_documents(urls):
             continue
 
         chunks = split_documents(cleaned_text)
-        upsert_vectors_to_pinecone(chunks, namespace)
+        upsert_vectors_to_pinecone(chunks, namespace, url)
         
         
 

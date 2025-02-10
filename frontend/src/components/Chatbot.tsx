@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './Chatbot.css';
+import ReactMarkdown from "react-markdown";
 
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +41,22 @@ const Chatbot: React.FC = () => {
                 <div className="icon">
                   {msg.sender === 'user' ? '👤' : '🤖'}
                 </div>
-                <div className="text">{msg.text}</div>
+                <div className="text">
+                  
+                  {msg.sender === 'bot' ? (
+                    <ReactMarkdown 
+                      components={{
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer">
+                            {children}
+                          </a>
+                        )
+                      }}>
+                        {msg.text}
+                        </ReactMarkdown> ): (
+                                        msg.text
+                                      )}
+                  </div>
               </div>
             ))}
             {isGenerating && (

@@ -81,9 +81,28 @@ def search_similar_vectors(user_query):
 
     # Sort results by similarity score
     sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)[:3]
-    context = "\n".join([match["metadata"].get("content", "") for match in sorted_results])
 
-    return context
+    context = []
+    sources = set()
+
+    for match in sorted_results:
+        content = match["metadata"].get("content", "")
+        source_url = match["metadata"].get("source_url", "")
+
+        if source_url:
+            sources.add(source_url)
+
+        context.append(content)
+
+    response_text = "\n".join(context)
+
+    # Format sources into clickable links
+    source_links = "\n".join([f"- [More Info]({url})" for url in sources])
+
+    return {
+        "response_text": response_text,
+        "sources": source_links
+    }
 
 
 def recommend_courses(user_query):

@@ -37,9 +37,15 @@ If you don't know the answer, just say that you don't know, don't try to make up
 
 Context:{context}
 User Query:{user_query}
-Answer: """
+Answer: 
 
-prompt_template = PromptTemplate(input_variables=["context", "user_query"], template=template_test)
+If the following sources contain relevant links to more information, include them in your response:
+
+Sources:
+{sources}
+"""
+
+prompt_template = PromptTemplate(input_variables=["context", "user_query", "sources"], template=template_test)
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 
@@ -57,6 +63,7 @@ async def chat(query: QueryRequest):
 
     else:
         # Default: Answer specific course queries using RAG
-        context = search_similar_vectors(query.user_query)
-        response = llm_chain.run(context=context, user_query=query.user_query)
-        return {"response": response}
+        search_result = search_similar_vectors(query.user_query)
+        response_text = llm_chain.run(context=search_result["response_text"], user_query=query.user_query, sources=search_result["sources"])
+
+        return {"response": response_text}
