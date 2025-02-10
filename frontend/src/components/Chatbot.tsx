@@ -5,11 +5,14 @@ import ReactMarkdown from "react-markdown";
 
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([
+    { sender: 'bot', text: 'Welcome to the Nottingham University Chatbot! Feel free to ask a question.' }
+  ]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   const toggleChatbot = () => setIsOpen(!isOpen);
+  const closeChatbot = () => setIsOpen(false);
 
   const sendMessage = async () => {
     if (input.trim()) {
@@ -29,12 +32,17 @@ const Chatbot: React.FC = () => {
 
   return (
     <div className="chatbot-container">
-      <div className={`chatbot-icon ${isOpen ? 'open' : ''}`} onClick={toggleChatbot}>
-        💬
-      </div>
+      {!isOpen && (  // Hide the speech bubble icon when the chatbot is open
+        <div className="chatbot-icon" onClick={toggleChatbot}>
+          💬
+        </div>
+      )}
       {isOpen && (
         <div className="chat-popup">
-          <div className="chat-header">University Chatbot</div>
+          <div className="chat-header">
+            <span className="chat-title">University Chatbot</span>
+            <button className="close-btn" onClick={closeChatbot}>✖</button>
+          </div>
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div key={index} className={`message ${msg.sender}`}>

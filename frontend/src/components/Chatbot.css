@@ -6,10 +6,9 @@
   }
   
   .chatbot-icon {
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
     font-size: 24px;
     cursor: pointer;
     transition: transform 0.3s ease-in-out;
@@ -20,7 +19,8 @@
   }
   
   .chat-popup {
-    width: 300px;
+    width: 400px;
+    height: 500px;
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -28,6 +28,8 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     animation: slide-in 0.3s ease-in-out;
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
   @keyframes slide-in {
@@ -52,14 +54,31 @@
     background-color: #18194f;
     color: #fff;
     padding: 8px;
-    text-align: center;
+    display: flex;
+    justify-content: space-between; /* Aligns title left and 'X' button right */
+    align-items: center;
+  }
+
+  .chat-title {
     font-weight: bold;
+    text-align: left; /* Moves the title to the left */
+    padding-left: 10px;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    padding-right: 10px;
   }
   
   .chat-messages {
-    max-height: 400px;
-    overflow-y: auto;
+    flex-grow: 1;
+    overflow-y: auto; /* Enables scrolling when messages exceed height */
     padding: 10px;
+    max-height: 400px;
   }
   
   .message {
@@ -95,6 +114,7 @@
     display: flex;
     padding: 10px;
     border-top: 1px solid #ccc;
+    background: #f1f1f1;
   }
   
   .chat-input input {
