@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 class ReminderPage extends StatefulWidget {
@@ -108,7 +109,7 @@ class _ReminderPageState extends State<ReminderPage> {
   }
 
   Future<Map<String, dynamic>?> _extractReminderDetails(String userQuery) async {
-    String gpt4oApiKey = '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';
+    String gpt4oApiKey = dotenv.env['OPENAI_API_KEY'] ?? "API_KEY_NOT_FOUND";
     String formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     final List<Map<String, dynamic>> messages = [

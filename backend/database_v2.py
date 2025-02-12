@@ -30,11 +30,14 @@ urls = [
     # https://www.nottingham.edu.my/Study/How-to-apply/When-to-apply.aspx
     
     # facilities
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Sport.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Swimming-pool.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Health.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Prayer.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/amenities.aspx"
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Sport.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Swimming-pool.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Health.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Prayer.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/amenities.aspx"
+    
+    # current students
+    #
 ]
 
 # Extract namespace from URL

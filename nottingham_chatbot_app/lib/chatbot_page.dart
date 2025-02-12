@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'webview_page.dart';
+
 
 
 class ChatHistory {
@@ -241,9 +244,19 @@ class _ChatbotPageState extends State<ChatbotPage> {
                           color: isUser ? Colors.blue[100] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Text(
-                          message["message"] ?? "",
-                          style: TextStyle(fontSize: 16),
+                        child:MarkdownBody(
+                          data: message["message"] ?? "",
+                          selectable: true,  // Allows users to select and copy text
+                          onTapLink: (text, href, title) async {
+                            if (href != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => WebViewPage(url: href),
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ),
                     ),

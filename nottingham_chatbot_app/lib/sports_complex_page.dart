@@ -310,7 +310,7 @@ String _getMonth(int month) {
 }
 
   Future<String> _fetchChatbotResponse(String userQuery) async {
-    const String apiUrl = 'http://10.0.2.2:8000/make_booking';
+    const String apiUrl = 'http://10.0.2.2:8001/make_booking';
     try {
       final response = await http.post(
         Uri.parse(apiUrl),

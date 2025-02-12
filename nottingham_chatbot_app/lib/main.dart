@@ -5,8 +5,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 import 'register_page.dart';
 import 'reminder_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Required before async operations
+
+  try {
+    await dotenv.load(fileName: ".env"); // Ensure the .env file is loaded before running the app
+    print("Environment variables loaded successfully.");
+  } catch (e) {
+    print("Error loading .env file: $e");
+  }
+
   runApp(MyApp());
 }
 
