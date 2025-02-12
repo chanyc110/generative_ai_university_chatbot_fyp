@@ -23,7 +23,7 @@ def determine_namespaces_with_gpt(user_query):
         "computer-science-with-artificial-intelligence-bsc-hons": "Undergraduate AI-focused computer science program details, including entry requirements, course structure, and modules.",
         "computer-science-mphil-phd": "Postgraduate computer science research program details.",
         "Foundation-undergraduate-scholarships": "Information about foundation and undergraduate scholarships available at the university.",
-        "Enquire-now": "Only has contact information of the university (email, phone numbers), campus location and information",
+        "contact-information": "Only has contact information of the university (email, phone numbers), campus location, and office hours.",
         "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities."
     }
 

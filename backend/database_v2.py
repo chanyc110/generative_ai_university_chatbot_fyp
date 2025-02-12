@@ -26,7 +26,7 @@ urls = [
     # "https://www.nottingham.edu.my/ugstudy/course/computer-science-with-artificial-intelligence-bsc-hons",
     # "https://www.nottingham.edu.my/pgstudy/course/research/computer-science-mphil-phd",
     # "https://www.nottingham.edu.my/Study/Fees-and-Scholarships/Scholarships/Foundation-undergraduate-scholarships.aspx",
-    # "https://www.nottingham.edu.my/Study/Make-an-enquiry/Enquire-now.aspx"
+    "https://www.nottingham.edu.my/Study/Make-an-enquiry/Enquire-now.aspx"
     # https://www.nottingham.edu.my/Study/How-to-apply/When-to-apply.aspx
     
     # facilities
@@ -124,4 +124,4 @@ def process_and_store_documents_with_namespace(urls, custom_namespace):
 # Run the process to store documents
 if __name__ == "__main__":
     #process_and_store_documents(urls)
-    process_and_store_documents_with_namespace(urls, "campus-facilities")  # Store in a custom namespace
+    process_and_store_documents_with_namespace(urls, "contact-information")  # Store in a custom namespace
