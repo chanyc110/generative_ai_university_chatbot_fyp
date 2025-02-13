@@ -167,7 +167,7 @@ class MenuPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ChatbotPage(messages: ChatHistory.messages)),
+                  MaterialPageRoute(builder: (context) => ChatbotPage()),
                 );
               },
               child: Column(

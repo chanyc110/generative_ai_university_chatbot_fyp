@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'webview_page.dart';
+import 'chat_database.dart';
 
 
 
@@ -13,9 +14,9 @@ class ChatHistory {
 }
 
 class ChatbotPage extends StatefulWidget {
-  final List<Map<String, String>> messages;
+  // final List<Map<String, String>> messages;
 
-  ChatbotPage({required this.messages});
+  // ChatbotPage({required this.messages});
 
   @override
   _ChatbotPageState createState() => _ChatbotPageState();
@@ -23,30 +24,52 @@ class ChatbotPage extends StatefulWidget {
 
 class _ChatbotPageState extends State<ChatbotPage> {
   final TextEditingController _queryController = TextEditingController();
-  late List<Map<String, String>> _messages; // Store messages
+  // late List<Map<String, String>> _messages; // Store messages
+  List<Map<String, dynamic>> _chats = [];
+  List<Map<String, String>> _messages = [];
   bool _isLoading = false;
-  int _selectedChatIndex = 0;
+  int? _selectedChatId;
 
   @override
   void initState() {
     super.initState();
-    _messages = List.from(widget.messages);
+    _loadChats();
+
   }
 
-  void _switchChat(int index) {
+  Future<void> _loadChats() async {
+    final chats = await DBHelper.getChats();
     setState(() {
-      _selectedChatIndex = index;
-      _messages = List.from(ChatHistory.chatHistories[index]);
+      _chats = chats;
+      if (_chats.isNotEmpty) {
+        _selectedChatId = _chats.first['id'];
+        _loadMessages(_selectedChatId!);
+      }
     });
   }
 
-  void _addNewChat() {
+  Future<void> _loadMessages(int chatId) async {
+    final messages = await DBHelper.getMessages(chatId);
     setState(() {
-      ChatHistory.chatNames.add("Chat ${ChatHistory.chatNames.length + 1}");
-      ChatHistory.chatHistories.add([]);
+      _selectedChatId = chatId;
+      _messages = messages
+          .map((msg) => {
+              "sender": msg["sender"].toString(), // Ensure String type
+              "message": msg["message"].toString(), // Ensure String type
+            })
+        .toList();
     });
-    Navigator.pop(context); // Close the previous sidebar
-    _showSidebar();
+  }
+
+  void _switchChat(int chatId) {
+    _loadMessages(chatId);
+  }
+
+
+  Future<void> _addNewChat() async {
+    int chatId = await DBHelper.addChat("Chat ${_chats.length + 1}");
+    await _loadChats();
+    _switchChat(chatId);
   }
 
   void _showSidebar() {
@@ -66,24 +89,34 @@ class _ChatbotPageState extends State<ChatbotPage> {
                     children: [
                       Expanded(
                         child: ListView.builder(
-                          itemCount: ChatHistory.chatNames.length,
+                          itemCount:  _chats.length,
                           itemBuilder: (context, index) {
+                            final chat = _chats[index];
                             return ListTile(
-                              title: Text(ChatHistory.chatNames[index]),
+                              title: Text(chat['name']),
                               onTap: () {
                                 Navigator.pop(context);
-                                _switchChat(index);
+                                _switchChat(chat['id']);
                               },
-                              trailing: IconButton(
-                                icon: Icon(Icons.edit),
-                                onPressed: () {
-                                  _renameChat(index, setState);
-                                },
-                              ),
-                            );
-                          },
-                        ),
+                              trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Rename Chat Button
+                                IconButton(
+                                  icon: Icon(Icons.edit),
+                                  onPressed: () => _renameChat(chat['id']),
+                                ),
+                                // Delete Chat Button
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _deleteChat(chat['id']),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
+                    ),
                   Divider(),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -112,7 +145,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
   }
 
-  Future<void> _renameChat(int index, void Function(void Function()) setSidebarState) async {
+
+  Future<void> _deleteChat(int chatId) async {
+    await DBHelper.deleteChat(chatId);
+    await _loadChats();
+  }
+
+  Future<void> _renameChat(int chatId) async {
     TextEditingController renameController = TextEditingController();
     await showDialog(
       context: context,
@@ -125,19 +164,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  ChatHistory.chatNames[index] = renameController.text.isNotEmpty
-                      ? renameController.text
-                      : ChatHistory.chatNames[index];
-                });
-                setSidebarState(() {});
+              onPressed: () async {
+                await DBHelper.renameChat(chatId, renameController.text);
+                await _loadChats();
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -149,7 +182,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
   Future<void> _sendMessage() async {
-    if (_isLoading) return; // Prevent duplicate requests
+    if (_isLoading || _selectedChatId == null) return;
 
     final userQuery = _queryController.text.trim();
     if (userQuery.isEmpty) return;
@@ -161,6 +194,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
     });
     _queryController.clear();
 
+    await DBHelper.addMessage(_selectedChatId!, "user", userQuery);
+
     try{
       // Simulate sending a request to the API
       final response = await _fetchChatbotResponse(userQuery);
@@ -169,8 +204,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
         _messages.add({"sender": "bot", "message": response});
       });
 
-      // Update shared history only once at the end
-      ChatHistory.chatHistories[_selectedChatIndex] = List.from(_messages);
+      await DBHelper.addMessage(_selectedChatId!, "bot", response);
     } finally {
       setState(() {
         _isLoading = false;
@@ -216,7 +250,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Center(
               child: Text(
-                ChatHistory.chatNames[_selectedChatIndex],
+                _selectedChatId != null
+                    ? _chats.firstWhere((chat) => chat['id'] == _selectedChatId, orElse: () => {"name": "Chatbot"})["name"]
+                    : "Chatbot",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
