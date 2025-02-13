@@ -77,11 +77,11 @@ class _ChatbotPageState extends State<ChatbotPage> {
       context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setSidebarState) {
             return Align(
               alignment: Alignment.centerRight,
               child: FractionallySizedBox(
-                widthFactor: 0.5,
+                widthFactor: 0.7,
                 child: Material(
                   color: Colors.white,
                   elevation: 8,
@@ -93,7 +93,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                           itemBuilder: (context, index) {
                             final chat = _chats[index];
                             return ListTile(
-                              title: Text(chat['name']),
+                              title: Text(chat['name'], overflow: TextOverflow.visible, maxLines: 2, softWrap: true,),
                               onTap: () {
                                 Navigator.pop(context);
                                 _switchChat(chat['id']);
@@ -104,12 +104,12 @@ class _ChatbotPageState extends State<ChatbotPage> {
                                 // Rename Chat Button
                                 IconButton(
                                   icon: Icon(Icons.edit),
-                                  onPressed: () => _renameChat(chat['id']),
+                                  onPressed: () => _renameChat(chat['id'], setSidebarState),
                                 ),
                                 // Delete Chat Button
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteChat(chat['id']),
+                                  onPressed: () => _deleteChat(chat['id'], setSidebarState),
                                 ),
                               ],
                             ),
@@ -121,9 +121,12 @@ class _ChatbotPageState extends State<ChatbotPage> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
-                      onPressed: _addNewChat,
-                      child: Text('Add New Chat'),
-                    ),
+                      onPressed: () async {
+                          await _addNewChat();
+                          setSidebarState(() {}); // 🔹 Update sidebar instantly
+                        },
+                        child: Text('Add New Chat'),
+                      ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -146,12 +149,14 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
 
-  Future<void> _deleteChat(int chatId) async {
+  Future<void> _deleteChat(int chatId, void Function(void Function()) setSidebarState) async {
     await DBHelper.deleteChat(chatId);
     await _loadChats();
+
+    setSidebarState(() {}); // 🔹 Update sidebar UI immediately
   }
 
-  Future<void> _renameChat(int chatId) async {
+  Future<void> _renameChat(int chatId, void Function(void Function()) setSidebarState) async {
     TextEditingController renameController = TextEditingController();
     await showDialog(
       context: context,
@@ -160,6 +165,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
           title: Text('Rename Chat'),
           content: TextField(
             controller: renameController,
+            maxLength: 30,
             decoration: InputDecoration(hintText: 'Enter new chat name'),
           ),
           actions: [
@@ -171,6 +177,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
               onPressed: () async {
                 await DBHelper.renameChat(chatId, renameController.text);
                 await _loadChats();
+
+                setSidebarState(() {}); // Update sidebar UI immediately
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
