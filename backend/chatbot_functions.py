@@ -2,6 +2,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone
 import os
+import pandas as pd
+import joblib
 
 # Load environment variables
 load_dotenv()
@@ -11,7 +13,10 @@ index = pc.Index("website-chatbot")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
+# Load the pre-trained model (assumed to be saved already)
+model_path = "C:\\Users\\PC 5\\Desktop\\fyp_new_version\\course_recommendation_model.pkl"
+optimized_model = joblib.load(model_path)
+print("Model loaded successfully!")
 
 
 # GPT-based namespace selection
@@ -107,60 +112,43 @@ def search_similar_vectors(user_query):
     }
 
 
-def recommend_courses(user_query):
+def recommend_courses(user_query, user_features=None):
     
-    course_names= determine_namespaces_with_gpt(user_query) # list of recommended courses
+    # If user_features are not provided, return feature selection options
+    if not user_features:
+        return {
+            "courses": [],
+            "response": "To recommend a course, please select your answers below:",
+            "feature_selection": {
+                "MathsAptitude": ["low", "medium", "high"],
+                "Interest": ["General computer science", "AI", "research and advanced studies"],
+                "HighestQualification": ["high school", "college", "diploma", "degree"],
+                "ComputerScienceRelated": ["Yes", "No", "N/A"]
+            }
+        }
     
-    if not course_names:
-        return {"courses": [], "response": "I'm not sure which courses fit your interests. Can you provide more details?"}
-
-    context = search_similar_vectors(user_query)
+    # Otherwise, predict the course using the pre-trained model.
+    # Make sure the keys match your training feature names exactly.
+    user_df = pd.DataFrame([user_features])
+    predicted_course = optimized_model.predict(user_df)[0]
+    predicted_probabilities = optimized_model.predict_proba(user_df)[0]
+    classes = optimized_model.named_steps['classifier'].classes_
     
-    if not context:
-        return {"courses": [], "response": "I couldn't find any relevant courses. Please refine your interests."}
+    # Build a response string showing probabilities
+    response_text = f"Based on your selections, the recommended course is **{predicted_course}**.\n\n"
+    response_text += "Confidence levels:\n"
     
+    courses = []
+    for course, prob in zip(classes, predicted_probabilities):
+        response_text += f"- {course}: {prob * 100:.2f}%\n"
+        courses.append({"course": course, "probability": round(prob * 100, 2)})
     
-    recommendation_prompt = (
-        "You are an AI assistant that provides personalized course recommendations. "
-        "Based on the user's interests, explain why the following courses are suitable for them.\n\n"
-        f"Relevant Course Information:\n{context}\n\n"
-        "Explain why these courses match the user's query. Provide a brief structured, engaging, and personalized response."
-    )
-    
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": recommendation_prompt},
-            {"role": "user", "content": f"User query: {user_query}"}
-        ],
-        temperature=0
-    )
-
-    explanation = response.choices[0].message.content.strip()
-
-    # Step 5: Return response with recommended courses and explanation
-    return {
-        "courses": course_names,
-        "response": explanation
-    }
+    return {"courses": courses, "response": response_text}
 
 
 
 
 
-# def compare_courses(user_query):
-    
-#     course_names = determine_namespaces_with_gpt(user_query)
-    
-#     if not course_names:
-#         return {"courses": [], "response": "I'm not sure which courses fit your interests. Can you provide more details?"}
-
-#     context = search_similar_vectors(user_query)
-    
-#     if not context:
-#         return {"courses": [], "response": "I couldn't find any relevant courses. Please refine your interests."}
-    
-    
 
 
 

@@ -9,6 +9,7 @@ from database_v2 import*
 from chatbot_functions import*
 from openai import OpenAI
 from langchain.chat_models import ChatOpenAI
+from typing import Optional, Dict
 
 app = FastAPI()
 
@@ -23,6 +24,7 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     user_query: str
+    user_features: Optional[Dict[str, str]] = None
 
 # Model configuration and prompt template
 model = os.environ.get("MODEL", "llama3.2")
@@ -54,13 +56,12 @@ async def chat(query: QueryRequest):
     intent = classify_user_intent(query.user_query)
 
     if intent == "recommendation":
-        recommendation_result = recommend_courses(query.user_query)
-        return {"courses": recommendation_result["courses"], "response": recommendation_result["response"]}
-
-    # elif intent == "course_comparison":
-    #     comparison_result = compare_courses(query.user_query)
-    #     return {"response": comparison_result}
-
+        recommendation_result = recommend_courses(query.user_query, query.user_features)
+        return {
+            "courses": recommendation_result.get("courses", []),
+            "response": recommendation_result["response"],
+            "feature_selection": recommendation_result.get("feature_selection")  # will be present if user_features is None
+        }
     else:
         # Default: Answer specific course queries using RAG
         search_result = search_similar_vectors(query.user_query)

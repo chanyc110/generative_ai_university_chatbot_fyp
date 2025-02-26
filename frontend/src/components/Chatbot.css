@@ -138,6 +138,45 @@
   .chat-input button:hover {
     background-color: #007bff;
   }
+
+  .feature-selection {
+    background-color: #f9f9f9;  /* Light background */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 12px;
+    margin: 10px 0; /* Some space above/below */
+    text-align: center;
+  }
+
+  .feature-selection p {
+    margin: 0 0 8px 0;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+  }
+
+  .options {
+    display: flex;
+    flex-wrap: wrap; /* Allows buttons to wrap to new line if there's not enough horizontal space */
+    gap: 8px;        /* Spacing between buttons */
+    justify-content: center;
+  }
+
+  .option-button {
+    background-color: #18194f; /* Matches your chatbot header color */
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 14px;
+  }
+  
+  /* Hover effect for buttons */
+  .option-button:hover {
+    background-color: #007bff; /* Slightly lighter blue on hover */
+  }
   
   .spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);

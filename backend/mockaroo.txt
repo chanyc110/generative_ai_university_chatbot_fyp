@@ -1,0 +1,26 @@
+if field("HighestQualification") == "high school"
+  "Nottingham foundation programme"
+elsif field("Interest") == "AI" && field("MathsAptitude") == "low"
+  "BSc Computer Science"
+elsif field("Interest") == "AI" && (field("MathsAptitude") == "high" || field("MathsAptitude") == "medium")
+  "BSc Computer Science with AI"
+elsif field("Interest") == "research and advanced studies" && field("HighestQualification") == "degree"
+  "MPhil/PhD Computer Science"
+elsif field("Interest") == "research and advanced studies" && field("HighestQualification") != "degree"
+  "BSc Computer Science"
+elsif (field("HighestQualification") == "diploma" || field("HighestQualification") == "degree") &&
+      field("ComputerScienceRelated") == "No"
+  "BSc Computer Science"
+elsif field("Interest") == "General computer science"
+  "BSc Computer Science"
+else
+  "BSc Computer Science"
+end
+
+
+
+if field("HighestQualification") == "diploma" || field("HighestQualification") == "degree"
+  ["Yes", "No"].sample  # Randomly picks Yes or No
+else
+  "N/A"
+end

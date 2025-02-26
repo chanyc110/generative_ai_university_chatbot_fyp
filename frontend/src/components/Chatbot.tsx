@@ -3,31 +3,95 @@ import axios from 'axios';
 import './Chatbot.css';
 import ReactMarkdown from "react-markdown";
 
+interface Message {
+  sender: string;
+  text: string;
+}
+
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([
+  const [messages, setMessages] = useState<Message[]>([
     { sender: 'bot', text: 'Welcome to the Nottingham University Chatbot! Feel free to ask a question.' }
   ]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // State for feature selection mode:
+  const [featureSelection, setFeatureSelection] = useState<{ [key: string]: string }>({});
+  const [availableFeatures, setAvailableFeatures] = useState<{ [key: string]: string[] } | null>(null);
+  const [featureKeys, setFeatureKeys] = useState<string[]>([]);
+  const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0);
+  const [selectionMode, setSelectionMode] = useState(false);
+
   const toggleChatbot = () => setIsOpen(!isOpen);
   const closeChatbot = () => setIsOpen(false);
 
+   // Function to submit feature selections to backend
+  const submitFeatures = async (features: { [key: string]: string }) => {
+    setIsGenerating(true);
+    try {
+      const response = await axios.post('http://localhost:8000/chat', { 
+        user_query: "course recommendation", 
+        user_features: features 
+      });
+      // Append the recommendation result to the chat
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: response.data.response }]);
+    } catch (error) {
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: 'An error occurred while submitting your selections. Please try again.' }]);
+    } finally {
+      setIsGenerating(false);
+      // Exit selection mode
+      setSelectionMode(false);
+      setAvailableFeatures(null);
+      setFeatureSelection({});
+      setFeatureKeys([]);
+      setCurrentFeatureIndex(0);
+    }
+  };
+
+  // Handle a feature option click
+  const handleFeatureOptionClick = (value: string) => {
+    // Get the current feature name from featureKeys array
+    const currentFeature = featureKeys[currentFeatureIndex];
+    const updatedSelections = { ...featureSelection, [currentFeature]: value };
+    setFeatureSelection(updatedSelections);
+
+    // Move to next feature or submit if finished
+    if (currentFeatureIndex < featureKeys.length - 1) {
+      setCurrentFeatureIndex(currentFeatureIndex + 1);
+    } else {
+      // All features have been selected; submit to backend
+      submitFeatures(updatedSelections);
+    }
+  };
+
   const sendMessage = async () => {
-    if (input.trim()) {
+    if (input.trim() && !selectionMode) {
       setMessages([...messages, { sender: 'user', text: input }]);
       setIsGenerating(true);
       try{
         const response = await axios.post('http://localhost:8000/chat', { user_query: input });
-        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: response.data.response }]);
-      } catch (error) {
-        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: 'An error occurred. Please try again.' }]);
-      } finally {
-        setIsGenerating(false);
+      // Check if the response includes feature_selection data
+      if (response.data.feature_selection) {
+        // Append the prompt message from backend
+        setMessages(prev => [...prev, { sender: 'bot', text: response.data.response }]);
+        // Set selection mode and store available features
+        setAvailableFeatures(response.data.feature_selection);
+        const keys = Object.keys(response.data.feature_selection);
+        setFeatureKeys(keys);
+        setCurrentFeatureIndex(0);
+        setSelectionMode(true);
+      } else {
+        // Normal response without feature selection mode
+        setMessages(prev => [...prev, { sender: 'bot', text: response.data.response }]);
       }
-      setInput('');
+    } catch (error) {
+      setMessages(prev => [...prev, { sender: 'bot', text: 'An error occurred. Please try again.' }]);
+    } finally {
+      setIsGenerating(false);
     }
+    setInput('');
+  }
   };
 
   return (
@@ -74,16 +138,36 @@ const Chatbot: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="chat-input">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question..."
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            />
-            <button onClick={sendMessage} disabled={isGenerating}>Send</button>
-          </div>
+          
+          {/* If in feature selection mode, display clickable options */}
+          {selectionMode && availableFeatures && featureKeys.length > 0 && (
+            <div className="feature-selection">
+              <p>
+                Select your {featureKeys[currentFeatureIndex]}:
+              </p>
+              <div className="options">
+                {availableFeatures[featureKeys[currentFeatureIndex]].map((option: string, index: number) => (
+                  <button key={index} className="option-button" onClick={() => handleFeatureOptionClick(option)}>
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Normal chat input only shows when NOT in feature selection mode */}
+          {!selectionMode && (
+            <div className="chat-input">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask a question..."
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+              />
+              <button onClick={sendMessage} disabled={isGenerating}>Send</button>
+            </div>
+          )}
         </div>
       )}
     </div>
