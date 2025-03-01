@@ -53,7 +53,14 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 @app.post("/chat")
 async def chat(query: QueryRequest):
-    intent = classify_user_intent(query.user_query)
+    
+    if query.user_features:
+        intent = "recommendation"
+    else:
+        intent = classify_user_intent(query.user_query)
+    
+    
+    print(intent)
 
     if intent == "recommendation":
         recommendation_result = recommend_courses(query.user_query, query.user_features)

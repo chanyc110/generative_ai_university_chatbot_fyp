@@ -27,6 +27,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
   // late List<Map<String, String>> _messages; // Store messages
   List<Map<String, dynamic>> _chats = [];
   List<Map<String, String>> _messages = [];
+  Map<String, String> _selectedFeatures = {};
   bool _isLoading = false;
   int? _selectedChatId;
 
@@ -205,14 +206,25 @@ class _ChatbotPageState extends State<ChatbotPage> {
     await DBHelper.addMessage(_selectedChatId!, "user", userQuery);
 
     try{
-      // Simulate sending a request to the API
+      // Send user query to backend
       final response = await _fetchChatbotResponse(userQuery);
       // Add chatbot's response to the chat
       setState(() {
-        _messages.add({"sender": "bot", "message": response});
+        if (response["feature_selection"] != null) {
+
+        // If feature selection is required, display options
+        _messages.add({
+          "sender": "bot",
+          "message": response["response"],
+          "feature_selection": jsonEncode(response["feature_selection"]) // Convert to String
+        });
+      } else {
+        // Normal chatbot response
+        _messages.add({"sender": "bot", "message": response["response"]});
+      }
       });
 
-      await DBHelper.addMessage(_selectedChatId!, "bot", response);
+      await DBHelper.addMessage(_selectedChatId!, "bot", response["response"]);
     } finally {
       setState(() {
         _isLoading = false;
@@ -220,25 +232,97 @@ class _ChatbotPageState extends State<ChatbotPage> {
     }
   }
 
-  Future<String> _fetchChatbotResponse(String userQuery) async {
+  Future<Map<String, dynamic>> _fetchChatbotResponse(String userQuery, {Map<String, String>? userFeatures}) async {
     const String apiUrl = 'http://10.0.2.2:8000/chat';
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"user_query": userQuery}),
+        body: jsonEncode({"user_query": userQuery, "user_features": userFeatures}),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data["response"] ?? "Sorry, I couldn't understand that.";
+        return jsonDecode(response.body);
       } else {
-        return "Error: Unable to fetch response.";
+        return {"response": "Error: Unable to fetch response."};
       }
     } catch (e) {
-      return "Error: $e";
+      return {"response": "Error: $e"};
     }
   }
+
+  Widget _buildFeatureSelection(Map<String, List<String>> featureSelection) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text("Select your preferences:", style: TextStyle(fontWeight: FontWeight.bold)),
+      ...featureSelection.entries.map((entry) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            children: [
+              Text("${entry.key}: ", style: TextStyle(fontWeight: FontWeight.w500)),
+              DropdownButton<String>(
+                value: _selectedFeatures[entry.key],
+                hint: Text("Choose"),
+                items: entry.value.map((option) {
+                  return DropdownMenuItem(
+                    value: option,
+                    child: Text(option),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFeatures[entry.key] = value!;
+                  });
+                },
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      ElevatedButton(
+        onPressed: _submitFeatures,
+        child: Text("Submit"),
+      ),
+    ],
+  );
+}
+
+
+void _submitFeatures() async {
+  if (_selectedFeatures.isEmpty) return;
+
+  // Add selected options as a message
+  setState(() {
+    _messages.add({
+      "sender": "user",
+      "message": "Selected: " + _selectedFeatures.entries.map((e) => "${e.key}: ${e.value}").join(", ")
+    });
+  });
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    // Send user features to backend
+    final response = await _fetchChatbotResponse("", userFeatures: _selectedFeatures);
+
+    setState(() {
+      _messages.add({"sender": "bot", "message": response["response"]});
+    });
+
+    await DBHelper.addMessage(_selectedChatId!, "bot", response["response"]);
+  } finally {
+    setState(() {
+      _isLoading = false;
+      _selectedFeatures.clear(); // Reset selected options
+    });
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -271,48 +355,65 @@ class _ChatbotPageState extends State<ChatbotPage> {
               itemBuilder: (context, index) {
                 final message = _messages[index];
                 final isUser = message["sender"] == "user";
-                return Row(
-                  mainAxisAlignment:
-                      isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-                  children: [
-                    if (!isUser)
-                      CircleAvatar(
-                        child: Icon(Icons.smart_toy),
-                        backgroundColor: Colors.grey[300],
-                      ),
-                    Flexible(
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: isUser ? Colors.blue[100] : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child:MarkdownBody(
-                          data: message["message"] ?? "",
-                          selectable: true,  // Allows users to select and copy text
-                          onTapLink: (text, href, title) async {
-                            if (href != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => WebViewPage(url: href),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    if (isUser)
-                      CircleAvatar(
-                        child: Icon(Icons.person),
-                        backgroundColor: Colors.blue[100],
-                      ),
-                  ],
-                );
-              },
-            ),
+
+                // Decode feature selection if it exists
+                Map<String, List<String>>? featureSelection;
+                if (message["feature_selection"] != null) {
+                  featureSelection = Map<String, List<String>>.from(
+                    jsonDecode(message["feature_selection"]!) // Convert back to Map
+                        .map((key, value) => MapEntry(key, List<String>.from(value)))
+                  );
+                }
+                
+                return Column(
+        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              if (!isUser)
+                CircleAvatar(
+                  child: Icon(Icons.smart_toy),
+                  backgroundColor: Colors.grey[300],
+                ),
+              Flexible(
+                child: Container(
+                  margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isUser ? Colors.blue[100] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: MarkdownBody(
+                    data: message["message"] ?? "",
+                    selectable: true,
+                    onTapLink: (text, href, title) async {
+                      if (href != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WebViewPage(url: href),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (isUser)
+                CircleAvatar(
+                  child: Icon(Icons.person),
+                  backgroundColor: Colors.blue[100],
+                ),
+            ],
+          ),
+          
+          // Display Feature Selection UI
+          if (featureSelection != null) _buildFeatureSelection(featureSelection),
+        ],
+      );
+    },
+  ),
           ),
           if (_isLoading)
             Padding(
