@@ -4,6 +4,7 @@ from pinecone import Pinecone
 import os
 import pandas as pd
 import joblib
+from nltk.sentiment import SentimentIntensityAnalyzer
 
 # Load environment variables
 load_dotenv()
@@ -17,6 +18,9 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 model_path = "C:\\Users\\PC 5\\Desktop\\fyp_new_version\\course_recommendation_model.pkl"
 optimized_model = joblib.load(model_path)
 print("Model loaded successfully!")
+
+# Initialize Sentiment Analyzer
+sia = SentimentIntensityAnalyzer()
 
 
 # GPT-based namespace selection
@@ -73,8 +77,12 @@ def search_similar_vectors(user_query):
     namespaces = determine_namespaces_with_gpt(user_query)
     
     if not namespaces:
-        return "Sorry, I couldn't determine the relevant section. Can you clarify your query?"
-
+        return {
+            "response_text": "I'm sorry, but I couldn't find relevant information for your query. "
+                            "If you need assistance, please clarify your question or contact support.",
+            "sources": ""
+        }
+        
     query_embedding = client.embeddings.create(
         input=user_query,
         model="text-embedding-3-small"  # Specify the embedding model
@@ -101,7 +109,7 @@ def search_similar_vectors(user_query):
 
         context.append(content)
 
-    response_text = "\n".join(context)
+    response_text = "\n".join(context) if context else "I'm sorry, but I couldn't find relevant information for your query."
 
     # Format sources into clickable links
     source_links = "\n".join([f"- [More Info]({url})" for url in sources])
@@ -146,10 +154,18 @@ def recommend_courses(user_query, user_features=None):
     return {"courses": courses, "response": response_text}
 
 
+def analyze_sentiment(user_query):
+    """Analyzes the sentiment of the user query and returns 'positive', 'neutral', or 'negative'."""
+    sentiment_score = sia.polarity_scores(user_query)["compound"]
 
-
-
-
+    if sentiment_score >= 0.5:
+        return "positive"
+    elif sentiment_score <= -0.8:
+        return "very_negative"
+    elif sentiment_score <= -0.5:
+        return "negative"
+    else:
+        return "neutral"
 
 
 

@@ -37,10 +37,18 @@ You should never talk about any other company/website/resources/books/tools or a
 Use the context provided to answer the user's question. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
-Context:{context}
-User Query:{user_query}
-Answer: 
+The user's current sentiment is **{sentiment}**.
+- If the sentiment is **positive**, match their enthusiasm while keeping responses professional.
+- If the sentiment is **negative**, respond with empathy and reassurance.
+- If the sentiment is **neutral**, provide a standard professional response.
 
+Context:
+{context}
+
+User Query:
+{user_query}
+
+Answer:
 If the following sources contain relevant links to more information, include them in your response:
 
 Sources:
@@ -54,13 +62,29 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 @app.post("/chat")
 async def chat(query: QueryRequest):
     
+    # Analyze sentiment
+    sentiment = analyze_sentiment(query.user_query)
+    print(f"Detected Sentiment: {sentiment}")
+    
+    # If sentiment is VERY NEGATIVE, offer human assistance
+    if sentiment == "very_negative":
+        contact_info = (
+            "😞 I'm really sorry that you're having a frustrating experience. "
+            "I want to make sure you get the help you need. You can reach out to our support team:\n\n"
+            "**📧 Email:** support@nottingham.edu.my\n"
+            "**📞 Phone:** +60 3-8924 8000\n"
+            "**⏳ Office Hours:** Mon-Fri, 9 AM - 5 PM (MYT)\n\n"
+            "Please feel free to contact them directly, and they'll assist you as soon as possible."
+        )
+        return {"response": contact_info}
+    
     if query.user_features:
         intent = "recommendation"
     else:
         intent = classify_user_intent(query.user_query)
     
     
-    print(intent)
+    print(f"User Intent: {intent}")
 
     if intent == "recommendation":
         recommendation_result = recommend_courses(query.user_query, query.user_features)
@@ -72,6 +96,11 @@ async def chat(query: QueryRequest):
     else:
         # Default: Answer specific course queries using RAG
         search_result = search_similar_vectors(query.user_query)
-        response_text = llm_chain.run(context=search_result["response_text"], user_query=query.user_query, sources=search_result["sources"])
+        
+        # If no relevant namespace was found, return early
+        if not search_result["sources"] and search_result["response_text"].startswith("I'm sorry"):
+            return {"response": search_result["response_text"]}
+        
+        response_text = llm_chain.run(context=search_result["response_text"], user_query=query.user_query, sources=search_result["sources"], sentiment=sentiment)
 
         return {"response": response_text}
