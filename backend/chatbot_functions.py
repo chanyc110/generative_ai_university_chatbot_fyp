@@ -195,3 +195,25 @@ def classify_user_intent(user_query):
         return intent
     else:
         return "course_info"  # Default
+    
+    
+user_memory = {} 
+user_sentiment_history = {}
+
+def update_memory(session_id, user_query, chatbot_response):
+    """Stores user messages and chatbot responses in memory."""
+    if session_id not in user_memory:
+        user_memory[session_id] = []
+    
+    user_memory[session_id].append({"user": user_query, "bot": chatbot_response})
+    
+def retrieve_memory(session_id, num_messages=3):
+    """Retrieves the last few chat messages for a session."""
+    return user_memory.get(session_id, [])[-num_messages:]
+
+def update_sentiment(session_id, sentiment):
+    """Stores sentiment history for tracking frustration over time."""
+    if session_id not in user_sentiment_history:
+        user_sentiment_history[session_id] = []
+    
+    user_sentiment_history[session_id].append(sentiment)

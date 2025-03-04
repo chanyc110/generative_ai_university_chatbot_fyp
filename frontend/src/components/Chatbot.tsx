@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Chatbot.css';
 import ReactMarkdown from "react-markdown";
@@ -15,6 +15,7 @@ const Chatbot: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // State for feature selection mode:
   const [featureSelection, setFeatureSelection] = useState<{ [key: string]: string }>({});
@@ -22,6 +23,31 @@ const Chatbot: React.FC = () => {
   const [featureKeys, setFeatureKeys] = useState<string[]>([]);
   const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0);
   const [selectionMode, setSelectionMode] = useState(false);
+
+  useEffect(() => {
+    // Generate and store session_id if not already set
+    let storedSessionId = sessionStorage.getItem("session_id");
+    if (!storedSessionId) {
+      storedSessionId = Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem("session_id", storedSessionId);
+    }
+    setSessionId(storedSessionId);
+    console.log("Frontend session_id:", storedSessionId);
+
+    // Load chat history from localStorage (if available)
+    const storedMessages = localStorage.getItem(`chat_history_${storedSessionId}`);
+    if (storedMessages) {
+      setMessages(JSON.parse(storedMessages));
+    }
+  }, []);
+
+  
+  useEffect(() => {
+    // Save chat history to localStorage so it persists on refresh
+    if (sessionId) {
+      localStorage.setItem(`chat_history_${sessionId}`, JSON.stringify(messages));
+    }
+  }, [messages, sessionId]);
 
   const toggleChatbot = () => setIsOpen(!isOpen);
   const closeChatbot = () => setIsOpen(false);
@@ -31,6 +57,7 @@ const Chatbot: React.FC = () => {
     setIsGenerating(true);
     try {
       const response = await axios.post('http://localhost:8000/chat', { 
+        session_id: sessionId,
         user_query: "course recommendation", 
         user_features: features 
       });
@@ -70,7 +97,7 @@ const Chatbot: React.FC = () => {
       setMessages([...messages, { sender: 'user', text: input }]);
       setIsGenerating(true);
       try{
-        const response = await axios.post('http://localhost:8000/chat', { user_query: input });
+        const response = await axios.post('http://localhost:8000/chat', { session_id: sessionId, user_query: input });
       // Check if the response includes feature_selection data
       if (response.data.feature_selection) {
         // Append the prompt message from backend

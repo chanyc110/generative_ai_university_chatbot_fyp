@@ -23,6 +23,7 @@ app.add_middleware(
 
 
 class QueryRequest(BaseModel):
+    session_id: str
     user_query: str
     user_features: Optional[Dict[str, str]] = None
 
@@ -62,12 +63,24 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 @app.post("/chat")
 async def chat(query: QueryRequest):
     
+    session_id = query.session_id
+    print(f"🚀 Backend received session_id: {session_id}")
+    
+    # Retrieve chat history
+    chat_history = retrieve_memory(session_id)
+    
     # Analyze sentiment
     sentiment = analyze_sentiment(query.user_query)
     print(f"Detected Sentiment: {sentiment}")
     
-    # If sentiment is VERY NEGATIVE, offer human assistance
-    if sentiment == "very_negative":
+    # Store sentiment in session history
+    update_sentiment(session_id, sentiment)
+    
+    # Count the number of negative/very negative messages
+    negative_count = sum(1 for s in user_sentiment_history[session_id] if s in ["negative", "very_negative"])
+    
+    # If user has sent 2 or more negative messages, provide human support
+    if negative_count >= 2:
         contact_info = (
             "😞 I'm really sorry that you're having a frustrating experience. "
             "I want to make sure you get the help you need. You can reach out to our support team:\n\n"
@@ -76,6 +89,11 @@ async def chat(query: QueryRequest):
             "**⏳ Office Hours:** Mon-Fri, 9 AM - 5 PM (MYT)\n\n"
             "Please feel free to contact them directly, and they'll assist you as soon as possible."
         )
+        update_memory(session_id, query.user_query, contact_info)
+        
+        # Reset sentiment history after sending human assistance message
+        user_sentiment_history[session_id] = []
+        
         return {"response": contact_info}
     
     if query.user_features:
@@ -88,6 +106,8 @@ async def chat(query: QueryRequest):
 
     if intent == "recommendation":
         recommendation_result = recommend_courses(query.user_query, query.user_features)
+        chatbot_response = recommendation_result["response"]
+        update_memory(session_id, query.user_query, chatbot_response)
         return {
             "courses": recommendation_result.get("courses", []),
             "response": recommendation_result["response"],
@@ -99,8 +119,16 @@ async def chat(query: QueryRequest):
         
         # If no relevant namespace was found, return early
         if not search_result["sources"] and search_result["response_text"].startswith("I'm sorry"):
-            return {"response": search_result["response_text"]}
+            chatbot_response = search_result["response_text"]
+            update_memory(session_id, query.user_query, chatbot_response)
+            return {"response": chatbot_response}
         
-        response_text = llm_chain.run(context=search_result["response_text"], user_query=query.user_query, sources=search_result["sources"], sentiment=sentiment)
+        # Retrieve memory for context-aware responses
+        previous_queries = " ".join([msg["user"] for msg in chat_history])
+        
+        response_text = llm_chain.run(context=f"{search_result['response_text']} {previous_queries}", user_query=query.user_query, sources=search_result["sources"], sentiment=sentiment)
 
+        # Store the response in memory
+        update_memory(session_id, query.user_query, response_text)
+        
         return {"response": response_text}
