@@ -207,9 +207,13 @@ def update_memory(session_id, user_query, chatbot_response):
     
     user_memory[session_id].append({"user": user_query, "bot": chatbot_response})
     
-def retrieve_memory(session_id, num_messages=3):
-    """Retrieves the last few chat messages for a session."""
-    return user_memory.get(session_id, [])[-num_messages:]
+def retrieve_memory(session_id, num_messages=5):
+    """Retrieve the last few messages from the chat history for context."""
+    history = user_memory.get(session_id, [])[-num_messages:]  # Get last `num_messages`
+    
+    formatted_history = "\n".join([f"User: {msg['user']}\nAssistant: {msg['bot']}" for msg in history])
+    
+    return formatted_history if formatted_history else "No previous conversation history."
 
 def update_sentiment(session_id, sentiment):
     """Stores sentiment history for tracking frustration over time."""

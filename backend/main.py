@@ -35,19 +35,23 @@ llm = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv('OPENAI_API_KEY'))
 template_test = """
 You are a helpful assistant at the University of Nottingham Malaysia(UNM), that answers inquiries from prospective students. 
 You should never talk about any other company/website/resources/books/tools or any product which is not related to Univeristy of Nottingham Malaysia.
-Use the context provided to answer the user's question. 
+Use the provided context and chat history to answer the user's query.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
-The user's current sentiment is **{sentiment}**.
-- If the sentiment is **positive**, match their enthusiasm while keeping responses professional.
-- If the sentiment is **negative**, respond with empathy and reassurance.
-- If the sentiment is **neutral**, provide a standard professional response.
+Chat History:
+{chat_history}
 
 Context:
 {context}
 
 User Query:
 {user_query}
+
+User's Sentiment:
+The user's current sentiment is **{sentiment}**.
+- If the sentiment is **positive**, match their enthusiasm while keeping responses professional.
+- If the sentiment is **negative**, respond with empathy and reassurance.
+- If the sentiment is **neutral**, provide a standard professional response.
 
 Answer:
 If the following sources contain relevant links to more information, include them in your response:
@@ -116,6 +120,7 @@ async def chat(query: QueryRequest):
     else:
         # Default: Answer specific course queries using RAG
         search_result = search_similar_vectors(query.user_query)
+        print(search_result)
         
         # If no relevant namespace was found, return early
         if not search_result["sources"] and search_result["response_text"].startswith("I'm sorry"):
@@ -123,10 +128,8 @@ async def chat(query: QueryRequest):
             update_memory(session_id, query.user_query, chatbot_response)
             return {"response": chatbot_response}
         
-        # Retrieve memory for context-aware responses
-        previous_queries = " ".join([msg["user"] for msg in chat_history])
         
-        response_text = llm_chain.run(context=f"{search_result['response_text']} {previous_queries}", user_query=query.user_query, sources=search_result["sources"], sentiment=sentiment)
+        response_text = llm_chain.run(chat_history=chat_history, context=search_result["response_text"], user_query=query.user_query, sources=search_result["sources"], sentiment=sentiment)
 
         # Store the response in memory
         update_memory(session_id, query.user_query, response_text)
