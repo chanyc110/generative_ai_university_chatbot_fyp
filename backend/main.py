@@ -49,9 +49,10 @@ User Query:
 
 User's Sentiment:
 The user's current sentiment is **{sentiment}**.
+
+Your responses should be tailored to the user's sentiment:
 - If the sentiment is **positive**, match their enthusiasm while keeping responses professional.
 - If the sentiment is **negative**, respond with empathy and reassurance.
-- If the sentiment is **neutral**, provide a standard professional response.
 
 Answer:
 If the following sources contain relevant links to more information, include them in your response:
@@ -60,7 +61,7 @@ Sources:
 {sources}
 """
 
-prompt_template = PromptTemplate(input_variables=["context", "user_query", "sources"], template=template_test)
+prompt_template = PromptTemplate(input_variables=["chat_history","context", "user_query", "sources", "sentiment"], template=template_test)
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 
@@ -81,7 +82,7 @@ async def chat(query: QueryRequest):
     update_sentiment(session_id, sentiment)
     
     # Count the number of negative/very negative messages
-    negative_count = sum(1 for s in user_sentiment_history[session_id] if s in ["negative", "very_negative"])
+    negative_count = sum(1 for s in user_sentiment_history[session_id] if s in ["negative"])
     
     # If user has sent 2 or more negative messages, provide human support
     if negative_count >= 2:
@@ -119,12 +120,31 @@ async def chat(query: QueryRequest):
         }
     else:
         # Default: Answer specific course queries using RAG
-        search_result = search_similar_vectors(query.user_query)
+        search_result = search_similar_vectors(query.user_query, chat_history)
         print(search_result)
         
         # If no relevant namespace was found, return early
-        if not search_result["sources"] and search_result["response_text"].startswith("I'm sorry"):
-            chatbot_response = search_result["response_text"]
+        if not search_result["sources"] and search_result["response_text"]:
+            print("No relevant namespace found. Generating LLM response dynamically.")
+            dynamic_template = """
+            You are a helpful assistant for the University of Nottingham Malaysia (UNM).
+            
+            The user's query did not match any specific information in the database. However, respond appropriately based on sentiment.
+            You should never talk about any other company/website/resources/books/tools or any product which is not related to Univeristy of Nottingham Malaysia.
+
+            ### User's Sentiment:
+            The user's sentiment is classified as **{sentiment}**.
+
+            #### Response Guidelines:
+            - **Positive Sentiment:** Acknowledge enthusiasm and encourage them to ask more questions.
+            - **Negative Sentiment:** Respond with empathy, acknowledge frustration, and guide them to help.
+
+            ### User Query:
+            {user_query}
+
+            ### Answer:
+            """
+            chatbot_response = llm_chain.run(chat_history=chat_history,user_query=query.user_query,sentiment=sentiment,template=dynamic_template)
             update_memory(session_id, query.user_query, chatbot_response)
             return {"response": chatbot_response}
         

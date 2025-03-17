@@ -24,7 +24,7 @@ sia = SentimentIntensityAnalyzer()
 
 
 # GPT-based namespace selection
-def determine_namespaces_with_gpt(user_query):
+def determine_namespaces_with_gpt(user_query, chat_history):
     # Define available namespaces with descriptions
     available_namespaces = {
         "nottingham-foundation-programme": "Foundation program details including entry requirements for foundation-level students. The Nottingham Foundation Programme is a pre-university course designed to prepare students for undergraduate studies at the University of Nottingham Malaysia. It provides foundational knowledge across various disciplines, allowing students to develop academic and subject-specific skills. Students must meet specific entry requirements for their chosen undergraduate program. ",
@@ -44,8 +44,20 @@ def determine_namespaces_with_gpt(user_query):
 
     for namespace, description in available_namespaces.items():
         system_prompt += f"Namespace: {namespace}\nDescription: {description}\n\n"
+        
+        
+    # Ensure chat_history is properly formatted
+    formatted_chat_history = "\n".join(
+        [f"User: {msg['user']}\nAssistant: {msg['bot']}" for msg in chat_history]
+    ) if isinstance(chat_history, list) else "No previous conversation history."
 
     system_prompt += (
+        "Use the conversation history to determine the correct namespace. If the user's query refers to a previous message, ensure that "
+        "the correct namespace is selected based on the most recent related query.\n\n"
+        "### Conversation History:\n"
+        f"{formatted_chat_history}\n\n"
+        "### Current User Query:\n"
+        f"{user_query}\n\n"
         "Choose one or more namespaces that best match the user's query. "
         "Return only the namespace names, separated by commas (e.g., 'computer-science-bsc-hons, computer-science-with-artificial-intelligence-bsc-hons'). "
         "Do NOT include any explanations or extra words—just return the namespace names."
@@ -68,18 +80,18 @@ def determine_namespaces_with_gpt(user_query):
         return valid_namespaces
     else:
         print("GPT returned invalid namespaces. Defaulting to general query.")
+        return []
     
 
 
 
 # Query Pinecone based on selected namespaces
-def search_similar_vectors(user_query):
-    namespaces = determine_namespaces_with_gpt(user_query)
+def search_similar_vectors(user_query, chat_history):
+    namespaces = determine_namespaces_with_gpt(user_query, chat_history)
     
     if not namespaces:
         return {
-            "response_text": "I'm sorry, but I couldn't find relevant information for your query. "
-                            "If you need assistance, please clarify your question or contact support.",
+            "response_text": None,
             "sources": ""
         }
         
@@ -109,7 +121,7 @@ def search_similar_vectors(user_query):
 
         context.append(content)
 
-    response_text = "\n".join(context) if context else "I'm sorry, but I couldn't find relevant information for your query."
+    response_text = "\n".join(context) if context else None
 
     # Format sources into clickable links
     source_links = "\n".join([f"- [More Info]({url})" for url in sources])
@@ -120,7 +132,7 @@ def search_similar_vectors(user_query):
     }
 
 
-def recommend_courses(user_query, user_features=None):
+def recommend_courses(user_features=None):
     
     # If user_features are not provided, return feature selection options
     if not user_features:
@@ -155,17 +167,10 @@ def recommend_courses(user_query, user_features=None):
 
 
 def analyze_sentiment(user_query):
-    """Analyzes the sentiment of the user query and returns 'positive', 'neutral', or 'negative'."""
+    """Analyzes the sentiment of the user query and returns 'positive' or 'negative'."""
     sentiment_score = sia.polarity_scores(user_query)["compound"]
 
-    if sentiment_score >= 0.5:
-        return "positive"
-    elif sentiment_score <= -0.8:
-        return "very_negative"
-    elif sentiment_score <= -0.5:
-        return "negative"
-    else:
-        return "neutral"
+    return "positive" if sentiment_score >= 0 else "negative"
 
 
 
@@ -209,11 +214,8 @@ def update_memory(session_id, user_query, chatbot_response):
     
 def retrieve_memory(session_id, num_messages=5):
     """Retrieve the last few messages from the chat history for context."""
-    history = user_memory.get(session_id, [])[-num_messages:]  # Get last `num_messages`
     
-    formatted_history = "\n".join([f"User: {msg['user']}\nAssistant: {msg['bot']}" for msg in history])
-    
-    return formatted_history if formatted_history else "No previous conversation history."
+    return user_memory.get(session_id, [])[-num_messages:]
 
 def update_sentiment(session_id, sentiment):
     """Stores sentiment history for tracking frustration over time."""
