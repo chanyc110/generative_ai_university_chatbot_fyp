@@ -16,6 +16,7 @@ const Chatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("en"); // Default: English
 
   // State for feature selection mode:
   const [featureSelection, setFeatureSelection] = useState<{ [key: string]: string }>({});
@@ -92,12 +93,17 @@ const Chatbot: React.FC = () => {
     }
   };
 
+  // 🌍 Language Selection
+  const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedLanguage(event.target.value);
+  };
+
   const sendMessage = async () => {
     if (input.trim() && !selectionMode) {
       setMessages([...messages, { sender: 'user', text: input }]);
       setIsGenerating(true);
       try{
-        const response = await axios.post('http://localhost:8000/chat', { session_id: sessionId, user_query: input });
+        const response = await axios.post('http://localhost:8000/chat', { session_id: sessionId, user_query: input , language: selectedLanguage});
       // Check if the response includes feature_selection data
       if (response.data.feature_selection) {
         // Append the prompt message from backend
@@ -134,6 +140,15 @@ const Chatbot: React.FC = () => {
             <span className="chat-title">University Chatbot</span>
             <button className="close-btn" onClick={closeChatbot}>✖</button>
           </div>
+
+          <div className="language-select">
+            <label>🌍 Language: </label>
+            <select value={selectedLanguage} onChange={handleLanguageChange}>
+              <option value="en">English</option>
+              <option value="zh">Chinese(中文)</option>
+            </select>
+          </div>
+
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div key={index} className={`message ${msg.sender}`}>

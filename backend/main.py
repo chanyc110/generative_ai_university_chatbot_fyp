@@ -26,6 +26,7 @@ class QueryRequest(BaseModel):
     session_id: str
     user_query: str
     user_features: Optional[Dict[str, str]] = None
+    language: Optional[str] = "en"
 
 # Model configuration and prompt template
 model = os.environ.get("MODEL", "llama3.2")
@@ -37,6 +38,11 @@ You are a helpful assistant at the University of Nottingham Malaysia(UNM), that 
 You should never talk about any other company/website/resources/books/tools or any product which is not related to Univeristy of Nottingham Malaysia.
 Use the provided context and chat history to answer the user's query.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+Language Preference:
+The user's query is in **{language}**.
+- If the language is English, respond in English.
+- If the language is Chinese, respond in Chinese.
 
 Chat History:
 {chat_history}
@@ -61,7 +67,7 @@ Sources:
 {sources}
 """
 
-prompt_template = PromptTemplate(input_variables=["chat_history","context", "user_query", "sources", "sentiment"], template=template_test)
+prompt_template = PromptTemplate(input_variables=["chat_history","context", "user_query", "sources", "sentiment", "language"], template=template_test)
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 
@@ -69,10 +75,16 @@ llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 async def chat(query: QueryRequest):
     
     session_id = query.session_id
-    print(f"🚀 Backend received session_id: {session_id}")
+    language = query.language
+    print(f"🚀 Backend received session_id: {session_id} | Language: {language}")
     
     # Retrieve chat history
     chat_history = retrieve_memory(session_id)
+    
+    # Translate query to English if not already in English
+    original_query = query.user_query
+    if language != "en":
+        query.user_query = translate_text(query.user_query, target_lang="en")
     
     # Analyze sentiment
     sentiment = analyze_sentiment(query.user_query)
@@ -110,7 +122,7 @@ async def chat(query: QueryRequest):
     print(f"User Intent: {intent}")
 
     if intent == "recommendation":
-        recommendation_result = recommend_courses(query.user_query, query.user_features)
+        recommendation_result = recommend_courses(query.user_features)
         chatbot_response = recommendation_result["response"]
         update_memory(session_id, query.user_query, chatbot_response)
         return {
@@ -132,6 +144,11 @@ async def chat(query: QueryRequest):
             The user's query did not match any specific information in the database. However, respond appropriately based on sentiment.
             You should never talk about any other company/website/resources/books/tools or any product which is not related to Univeristy of Nottingham Malaysia.
 
+            ### Language Preference:
+            The user's query is in **{language}**.
+            - If the language is English, respond in English.
+            - If the language is Chinese, respond in Chinese.
+
             ### User's Sentiment:
             The user's sentiment is classified as **{sentiment}**.
 
@@ -144,12 +161,12 @@ async def chat(query: QueryRequest):
 
             ### Answer:
             """
-            chatbot_response = llm_chain.run(chat_history=chat_history,user_query=query.user_query,sentiment=sentiment,template=dynamic_template)
+            chatbot_response = llm_chain.run(chat_history=chat_history,user_query=original_query,sentiment=sentiment,template=dynamic_template, language=language)
             update_memory(session_id, query.user_query, chatbot_response)
             return {"response": chatbot_response}
         
         
-        response_text = llm_chain.run(chat_history=chat_history, context=search_result["response_text"], user_query=query.user_query, sources=search_result["sources"], sentiment=sentiment)
+        response_text = llm_chain.run(chat_history=chat_history, context=search_result["response_text"], user_query=original_query, sources=search_result["sources"], sentiment=sentiment, language=language)
 
         # Store the response in memory
         update_memory(session_id, query.user_query, response_text)

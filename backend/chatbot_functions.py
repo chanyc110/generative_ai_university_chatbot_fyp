@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import joblib
 from nltk.sentiment import SentimentIntensityAnalyzer
+from deep_translator import GoogleTranslator
 
 # Load environment variables
 load_dotenv()
@@ -228,3 +229,12 @@ def update_sentiment(session_id, sentiment):
         user_sentiment_history[session_id] = []
     
     user_sentiment_history[session_id].append(sentiment)
+    
+    
+def translate_text(text, target_lang="en"):
+    """Translates text into the target language (default: English)."""
+    try:
+        return GoogleTranslator(source="auto", target=target_lang).translate(text)
+    except Exception as e:
+        print(f"❌ Translation Error: {e}")
+        return text
