@@ -170,7 +170,12 @@ def analyze_sentiment(user_query):
     """Analyzes the sentiment of the user query and returns 'positive' or 'negative'."""
     sentiment_score = sia.polarity_scores(user_query)["compound"]
 
-    return "positive" if sentiment_score >= 0 else "negative"
+    if sentiment_score > 0.2:  # Adjusted to capture actual positivity
+        return "positive"
+    elif sentiment_score < -0.2:  # Adjusted to capture actual negativity
+        return "negative"
+    else:
+        return "neutral"  # This avoids misclassifying neutral queries
 
 
 
