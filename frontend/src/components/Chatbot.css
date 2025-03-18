@@ -49,6 +49,10 @@
       transform: translateY(100%);
     }
   }
+
+  .chat-popup.closing {
+    animation: slide-out 0.3s ease-in-out forwards;
+  }
   
   .chat-header {
     background-color: #18194f;
@@ -176,6 +180,43 @@
   /* Hover effect for buttons */
   .option-button:hover {
     background-color: #007bff; /* Slightly lighter blue on hover */
+  }
+
+  .language-select {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    background-color: #f4f4f4;
+    border-bottom: 1px solid #ccc;
+    border-radius: 8px;
+    margin: 8px;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .language-select label {
+    margin-right: 8px;
+    font-weight: 600;
+  }
+  
+  .language-select select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+  
+  .language-select select:hover {
+    border-color: #0066cc;
+  }
+  
+  .language-select select:focus {
+    outline: none;
+    border-color: #004080;
   }
   
   .spinner {

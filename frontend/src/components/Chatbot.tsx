@@ -10,6 +10,7 @@ interface Message {
 
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { sender: 'bot', text: 'Welcome to the Nottingham University Chatbot! Feel free to ask a question.' }
   ]);
@@ -51,7 +52,14 @@ const Chatbot: React.FC = () => {
   }, [messages, sessionId]);
 
   const toggleChatbot = () => setIsOpen(!isOpen);
-  const closeChatbot = () => setIsOpen(false);
+  const closeChatbot = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+    }, 300);
+  };
+  
 
    // Function to submit feature selections to backend
   const submitFeatures = async (features: { [key: string]: string }) => {
@@ -135,7 +143,7 @@ const Chatbot: React.FC = () => {
         </div>
       )}
       {isOpen && (
-        <div className="chat-popup">
+        <div className={`chat-popup ${isClosing ? 'closing' : ''}`}>
           <div className="chat-header">
             <span className="chat-title">University Chatbot</span>
             <button className="close-btn" onClick={closeChatbot}>✖</button>
