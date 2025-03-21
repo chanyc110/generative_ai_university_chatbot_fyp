@@ -34,7 +34,8 @@ def determine_namespaces_with_gpt(user_query, chat_history):
         "computer-science-mphil-phd": "Postgraduate computer science research program details.",
         "Foundation-undergraduate-scholarships": "Information about foundation and undergraduate scholarships available at the university.",
         "contact-information": "Only has contact information of the university (email, phone numbers), campus location, and office hours.",
-        "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities."
+        "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities.",
+        "school_of_CS_modules": "Specific informtaion about school of computer science modules and each modules details."
     }
 
     system_prompt = (
