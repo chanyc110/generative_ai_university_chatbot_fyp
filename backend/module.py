@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 from pinecone import Pinecone
 import os
 import json
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
 
 
 # Load environment variables
@@ -20,65 +23,83 @@ def get_embedding(text):
     )
     return response.data[0].embedding
 
+def extract_course_structure(soup, div_id):
+    grid_div = soup.find('div', id=div_id)
+    if not grid_div:
+        return "Not Found"
+
+    # Find the actual grid (scrollable div) where rows are located
+    grid_scroll_div = grid_div.find('div', {'class': 'ps_box-grid ps_scrollable sbar sbar_v ps_scrollable_v'})
+    if not grid_scroll_div:
+        return "No course structure data found"
+    
+    table = grid_scroll_div.find('table', class_='ps_grid-flex')
+    if not table:
+        return "No course structure table found"
+
+    course_structure_list = []
+    rows = table.find_all('tr')
+    for row in rows:
+        cells = row.find_all('td')
+        values = [cell.get_text(strip=True).replace('\xa0', ' ') for cell in cells]
+        if values and len(values) >= 4:  # Ensure at least 4 fields
+            course_structure_list.append(
+                f"Course Component: {values[1]}, Number of Weeks: {values[2]}, "
+                f"Number of Sessions: {values[3]}, Duration of Session: {values[4]}"
+            )
+
+    if not course_structure_list:
+        return "No valid course structure rows found"
+
+    return course_structure_list
 
 
-# Module information
-module_info = {
-    'academic_year': '2025',
-    'module_code': 'COMP2032',
-    'total_credits': 10.00,
-    'level': 2,
-    'offering_school': 'Computer Science',
-    'module_convenor': 'Dr Tissa Chandesa',
-    'taught_semesters': 'Spring Malaysia',
-    'target_students': 'Available to Level 2 students in the School of Computer Science. Available to inter-campus mobility students and other exchange students in computer science. This module is not available to students not listed above, without explicit approval from the module convenor(s). This module is part of the Artificial Intelligence, Modelling and Optimisation theme in the School of Computer Science. Available to JYA/Erasmus students',
-    'summary_of_content': 'Name of Module: Introduction to Image Processing | This module introduces the field of digital image processing, a fundamental component of digital photography, television, computer graphics and computer vision. Topics include: image processing and its applications; fundamentals of digital images; digital image processing theory and practice; and applications of image processing. Approximately three hours are spent in lectures and computer classes each week.',
-    'educational_aims': 'To introduce the fundamentals of digital image processing theory and practice. To gain practical experience in writing programs for manipulating digital images. To lay the foundation for studying advanced topics in related fields.',
-    'course_structure': [
-        {
-            'course_component': 'Lecture',
-            'number_of_weeks': '12 weeks',
-            'number_of_sessions': '1 per week',
-            'duration_of_session': '2 hours'
-        },
-        {
-            'course_component': 'Computing',
-            'number_of_weeks': '12 weeks',
-            'number_of_sessions': '1 per week',
-            'duration_of_session': '1 hour'
-        }
-    ],
-    'assessment': [
-        {
-            'assessment_type': 'Coursework 1',
-            'weight': 100.0,
-            'requirements': '1) A group coursework consisting of an application creation, supported with a 2000-word report; 2) In-classroom exams'
-        }
-    ],
-    'learning_outcomes': {
-        'knowledge_and_understanding': [
-            'Experience implementing programs that manipulate images',
-            'Understanding fundamental techniques in image processing and analysis, and their limitations',
-            'Appreciation of the underlying mathematical principles of the field'
-        ],
-        'intellectual_skills': [
-            'Apply knowledge of image processing techniques to particular tasks',
-            'Evaluate different techniques in the context of image manipulation and processing'
-        ],
-        'professional_skills': [
-            'Evaluate the applicability of various algorithms and operators to particular tasks'
-        ],
-        'transferable_skills': [
-            'Address real problems and assess the value of proposed solutions',
-            'Retrieve and analyse information from a variety of sources',
-            'Produce detailed written reports on results to support the United Nations Sustainable Development Goals (SDGs)'
-        ]
-    }
+def scrape_module_page(url, div_id_mapping):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    module_info = {}
+    for key, div_id in div_id_mapping.items():
+        if key == "course_structure":
+            module_info[key] = extract_course_structure(soup, div_id)
+        elif key == "assessment":
+            div = soup.find('div', id=div_id)
+            if div:
+                try:
+                    table_html = str(div)
+                    df = pd.read_html(table_html)[0]
+                    module_info[key] = df.to_dict(orient="records")
+                except Exception as e:
+                    module_info[key] = "Table parsing failed"
+            else:
+                module_info[key] = "Not Found"
+        else:
+            div = soup.find('div', id=div_id)
+            module_info[key] = div.get_text(separator=' ', strip=True) if div else "Not Found"
+    return module_info
+
+div_id_mapping = {
+    "module_name": "UN_PLN_EXT2_WRK_PTS_LIST_TITLE",
+    "academic_year": "win0divUN_PLN_EXT2_WRK_$13$",
+    "module_code": "win0divUN_PLN_EXT2_WRK_$17$",
+    "total_credits": "win0divUN_PLN_EXT2_WRK_$23$",
+    "level": "win0divUN_PLN_EXT2_WRK_$28$",
+    "offering_school": "win0divUN_PLN_EXT2_WRK_$34$",
+    "module_convenor": "win0divUN_PLN_EXT2_WRK_$39$",
+    "taught_semesters": "win0divUN_PLN_EXT2_WRK_$44$",
+    "target_students": "win0divUN_PLN_EXT2_WRK_$48$",
+    "summary_of_content": "win0divUN_PLN_EXT2_WRK_HTMLAREA11",
+    "educational_aims": "win0divUN_PLN_EXT2_WRK_HTMLAREA12",
+    "course_structure": "win0divUN_PLN_EXT2_WRK_ACA_FREQ",
+    "assessment": "win0divUN_CRS_ASAI_TBL$0",
+    "learning_outcomes": "win0divUN_PLN_EXT2_WRK_UN_LEARN_OUTCOME"
 }
 
-module_content = f"""
+
+def build_module_content(module_info):
+    module_content = f"""
 Module Code: {module_info['module_code']}
-Module Name: Introduction to Image Processing
+Module Name: {module_info['module_name']}
 Academic Year: {module_info['academic_year']}
 Total Credits: {module_info['total_credits']}
 Level: {module_info['level']}
@@ -100,19 +121,29 @@ Assessment:
 {json.dumps(module_info['assessment'], indent=2)}
 
 Learning Outcomes:
-{json.dumps(module_info['learning_outcomes'], indent=2)}
-
+{module_info['learning_outcomes']}
 """
-
-metadata = {
-    "content": module_content,  # ✅ Everything in content
-    "source_url": "https://campus.nottingham.ac.uk/psc/csprd_pub/EMPLOYEE/HRMS/c/UN_PROG_AND_MOD_EXTRACT.UN_PLN_EXTRT_FL_CP.GBL?PAGE=UN_CRS_EXT4_FPG&CAMPUS=M&TYPE=Module&YEAR=2025&TITLE=Introduction%20to%20Image%20Processing&MODULE=COMP2032&CRSEID=019457&LINKA=&LINKB=&LINKC=MSC-CS&"
-}
+    return module_content
 
 
-embedding = get_embedding(module_content)
+def upsert_module(module_content, module_code, url):
+    embedding = get_embedding(module_content)
+    metadata = {
+        "content": module_content,
+        "source_url": url
+    }
+    index.upsert([(module_code, embedding, metadata)], namespace="school_of_CS_modules")
+    print(f"✅ Upserted module: {module_code}")
+    
 
+module_urls = [ "https://campus.nottingham.ac.uk/psc/csprd_pub/EMPLOYEE/HRMS/c/UN_PROG_AND_MOD_EXTRACT.UN_PLN_EXTRT_FL_CP.GBL?PAGE=UN_CRS_EXT4_FPG&CAMPUS=M&TYPE=Module&YEAR=2025&TITLE=Computer%20Security&MODULE=COMP3028&CRSEID=018953&LINKA=&LINKB=&LINKC=MSC-CS"
+                
+                ]
 
-# Upsert into Pinecone
-index.upsert([(module_info['module_code'], embedding, metadata)], namespace="school_of_CS_modules")
+for url in module_urls:
+    module_info = scrape_module_page(url, div_id_mapping)
+    module_content = build_module_content(module_info)
+    print(module_content)
+    upsert_module(module_content, module_info['module_code'], url)
+
 

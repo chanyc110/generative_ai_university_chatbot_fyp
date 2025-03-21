@@ -105,7 +105,8 @@ def search_similar_vectors(user_query, chat_history):
     results = []
 
     for namespace in namespaces:
-        res = index.query(vector=query_embedding, top_k=3, include_metadata=True, namespace=namespace)
+        top_k = 1 if namespace == "school_of_CS_modules" else 3
+        res = index.query(vector=query_embedding, top_k=top_k, include_metadata=True, namespace=namespace)
         results.extend(res["matches"])
 
     # Sort results by similarity score
