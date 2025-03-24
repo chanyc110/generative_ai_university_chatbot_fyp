@@ -29,18 +29,22 @@ def determine_namespaces_with_gpt(user_query, chat_history):
     # Define available namespaces with descriptions
     available_namespaces = {
         "nottingham-foundation-programme": "Foundation program details including entry requirements for foundation-level students. The Nottingham Foundation Programme is a pre-university course designed to prepare students for undergraduate studies at the University of Nottingham Malaysia. It provides foundational knowledge across various disciplines, allowing students to develop academic and subject-specific skills. Students must meet specific entry requirements for their chosen undergraduate program. ",
-        "computer-science-bsc-hons": "Undergraduate computer science program details, including entry requirements, course structure, and modules.",
+        "computer-science-bsc-hons": "Undergraduate computer science program details, including entry requirements, course structure, and listing core and optional modules per year.",
         "computer-science-with-artificial-intelligence-bsc-hons": "Undergraduate AI-focused computer science program details, including entry requirements, course structure, and modules.",
         "computer-science-mphil-phd": "Postgraduate computer science research program details.",
         "Foundation-undergraduate-scholarships": "Information about foundation and undergraduate scholarships available at the university.",
         "contact-information": "Only has contact information of the university (email, phone numbers), campus location, and office hours.",
         "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities.",
-        "school_of_CS_modules": "Specific informtaion about school of computer science modules and each modules details."
+        "school_of_CS_modules": "Specific informtaion about school of computer science modules and each modules details.""Provides detailed information about individual Computer Science modules such as module aims, learning outcomes, assessment methods"
     }
 
     system_prompt = (
         "You are an AI classifier that determines the most relevant namespace(s) based on the user's query. "
         "Each namespace represents a category of information about university courses. Select the correct namespaces based on the query's intent.\n"
+        "\nIMPORTANT RULES:\n"
+        "- If the user asks about general module lists for a year or course progression, choose 'computer-science-bsc-hons'.\n"
+        "- If the user asks about details of a specific module (like COMP2032), choose 'school_of_CS_modules'.\n"
+        "- Avoid selecting 'school_of_CS_modules' for questions asking about general course structures or year-wise module lists.\n"
         "Here is a list of available namespaces and what they contain:\n\n"
     )
 
