@@ -35,7 +35,8 @@ def determine_namespaces_with_gpt(user_query, chat_history):
         "Foundation-undergraduate-scholarships": "Information about foundation and undergraduate scholarships available at the university.",
         "contact-information": "Only has contact information of the university (email, phone numbers), campus location, and office hours.",
         "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities.",
-        "school_of_CS_modules": "Specific informtaion about school of computer science modules and each modules details.""Provides detailed information about individual Computer Science modules such as module aims, learning outcomes, assessment methods"
+        "school_of_CS_modules": "Specific informtaion about school of computer science modules and each modules details.""Provides detailed information about individual Computer Science modules such as module aims, learning outcomes, assessment methods",
+        "application-information": "Information on how to apply for the courses at the University of Nottingham Malaysia, accepting your offer and information on deposits for the offer."
     }
 
     system_prompt = (

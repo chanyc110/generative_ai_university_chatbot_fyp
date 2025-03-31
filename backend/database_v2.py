@@ -31,14 +31,19 @@ urls = [
     # https://www.nottingham.edu.my/Study/How-to-apply/When-to-apply.aspx
     
     # facilities
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Sport.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Swimming-pool.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Health.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/Prayer.aspx",
-    "https://www.nottingham.edu.my/CurrentStudents/Facilities/amenities.aspx"
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Sport.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Sport/Swimming-pool.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Health.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Prayer.aspx",
+    # "https://www.nottingham.edu.my/CurrentStudents/Facilities/amenities.aspx"
     
-    # current students
-    #
+    
+]
+
+SPECIAL_FULL_PAGES =[
+    # how to apply
+    # "https://www.nottingham.edu.my/Study/How-to-apply/how-to-apply.aspx",
+    "https://www.nottingham.edu.my/Study/Offer-acceptance/index.aspx"
 ]
 
 # Extract namespace from URL
@@ -98,7 +103,28 @@ def upsert_vectors_to_pinecone(docs, namespace, source_url):
 
     index.upsert(vectors=vectors, namespace=namespace)
     print(f"--- Finished upserting {len(vectors)} vectors ---  Next available chunk index: {next_chunk_index + len(vectors)}")
-    
+
+
+def upsert_full_page_to_pinecone(text, namespace, source_url):
+    print(f"\n--- Upserting full page content to Pinecone under namespace '{namespace}' ---")
+
+    embedding = client.embeddings.create(
+        input=[text],
+        model="text-embedding-3-small"
+    ).data[0].embedding
+
+    unique_id = f"{namespace}-doc-{hash(source_url)}"  # A unique ID per page
+
+    metadata = {
+        "namespace": namespace,
+        "content": text,
+        "source_url": source_url
+    }
+
+    index.upsert(vectors=[(unique_id, embedding, metadata)], namespace=namespace)
+    print(f"✅ Done: {source_url}")
+
+
 # Process and store documents
 def process_and_store_documents(urls):
     for url in urls:
@@ -132,11 +158,14 @@ def process_and_store_documents_with_namespace(urls, custom_namespace):
             print(f"Skipping {url} due to extraction failure.")
             continue
 
-        chunks = split_documents(cleaned_text)
-        upsert_vectors_to_pinecone(chunks, namespace, url)
+        if url in SPECIAL_FULL_PAGES:
+            upsert_full_page_to_pinecone(cleaned_text, custom_namespace, url)
+        else:
+            chunks = split_documents(cleaned_text)
+            upsert_vectors_to_pinecone(chunks, custom_namespace, url)
         
 
 # Run the process to store documents
 if __name__ == "__main__":
     # process_and_store_documents(urls)
-    process_and_store_documents_with_namespace(urls, "campus-facilities")  # Store in a custom namespace
+    process_and_store_documents_with_namespace(SPECIAL_FULL_PAGES, "application-information")  # Store in a custom namespace
