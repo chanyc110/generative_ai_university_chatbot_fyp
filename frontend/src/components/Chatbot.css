@@ -24,7 +24,7 @@
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     animation: slide-in 0.3s ease-in-out;
     position: relative;
@@ -61,6 +61,54 @@
     display: flex;
     justify-content: space-between; /* Aligns title left and 'X' button right */
     align-items: center;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .menu-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  
+  .sidebar-menu {
+    position: absolute;
+    top: 45px; /* Adjust based on .chat-header height */
+    right: 10px;
+    left: 10px;
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 0 10px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+    z-index: 10;
+  }
+
+  .sidebar-menu.open {
+    max-height: 200px;
+    padding: 10px; 
+    opacity: 1;
+  }
+  
+  .sidebar-section {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+  }
+  
+  .sidebar-section label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
   }
 
   .chat-title {

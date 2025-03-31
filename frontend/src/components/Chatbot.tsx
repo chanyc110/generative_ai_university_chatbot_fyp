@@ -18,6 +18,8 @@ const Chatbot: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("en"); // Default: English
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   // State for feature selection mode:
   const [featureSelection, setFeatureSelection] = useState<{ [key: string]: string }>({});
@@ -146,16 +148,22 @@ const Chatbot: React.FC = () => {
         <div className={`chat-popup ${isClosing ? 'closing' : ''}`}>
           <div className="chat-header">
             <span className="chat-title">University Chatbot</span>
+            <div className="header-actions">
+            <button className="menu-btn" onClick={toggleSidebar}>⋮</button>
             <button className="close-btn" onClick={closeChatbot}>✖</button>
+            </div>
           </div>
 
-          <div className="language-select">
-            <label>🌍 Language: </label>
-            <select value={selectedLanguage} onChange={handleLanguageChange}>
-              <option value="en">English</option>
-              <option value="zh">Chinese(中文)</option>
-            </select>
-          </div>
+          <div className={`sidebar-menu ${sidebarOpen ? 'open' : ''}`}>
+              <div className="sidebar-section">
+                <label>🌍 Language</label>
+                <select value={selectedLanguage} onChange={handleLanguageChange}>
+                  <option value="en">English</option>
+                  <option value="zh">Chinese(中文)</option>
+                </select>
+              </div>
+            </div>
+
 
           <div className="chat-messages">
             {messages.map((msg, index) => (
