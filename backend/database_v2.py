@@ -37,7 +37,7 @@ urls = [
     # "https://www.nottingham.edu.my/CurrentStudents/Facilities/Prayer.aspx",
     # "https://www.nottingham.edu.my/CurrentStudents/Facilities/amenities.aspx"
     
-    
+    'https://www.nottingham.edu.my/ComputerScience/People/index.aspx'
 ]
 
 SPECIAL_FULL_PAGES =[

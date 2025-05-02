@@ -3,8 +3,17 @@ import Chatbot from './components/Chatbot';
 
 const App: React.FC = () => {
   return (
-    <div className="App">
-      <h1>University Website</h1>
+    <div
+      className="App"
+      style={{
+        backgroundImage: "url('/UNM-Trent-Building.jpg')",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        minHeight: "100vh",
+      }}
+    >
+      <h1 style={{ color: "black" }}>University of Nottingham Malaysia</h1>
       <Chatbot />
     </div>
   );

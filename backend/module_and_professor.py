@@ -23,6 +23,10 @@ def get_embedding(text):
     )
     return response.data[0].embedding
 
+
+
+"""Modules"""
+
 def extract_course_structure(soup, div_id):
     grid_div = soup.find('div', id=div_id)
     if not grid_div:
@@ -78,7 +82,7 @@ def scrape_module_page(url, div_id_mapping):
             module_info[key] = div.get_text(separator=' ', strip=True) if div else "Not Found"
     return module_info
 
-div_id_mapping = {
+module_div_id_mapping = {
     "module_name": "UN_PLN_EXT2_WRK_PTS_LIST_TITLE",
     "academic_year": "win0divUN_PLN_EXT2_WRK_$13$",
     "module_code": "win0divUN_PLN_EXT2_WRK_$17$",
@@ -177,10 +181,134 @@ module_urls = [ "https://campus.nottingham.ac.uk/psc/csprd_pub/EMPLOYEE/HRMS/c/U
                 
                 ]
 
-for url in module_urls:
-    module_info = scrape_module_page(url, div_id_mapping)
-    module_content = build_module_content(module_info)
-    print(module_content)
-    upsert_module(module_content, module_info['module_code'], url)
+# for url in module_urls:
+#     module_info = scrape_module_page(url, module_div_id_mapping)
+#     module_content = build_module_content(module_info)
+#     print(module_content)
+#     upsert_module(module_content, module_info['module_code'], url)
 
+
+
+"""Professors"""
+
+professors = [
+    {
+        "name": "Zhiyuan Chen",
+        "position": "Head of School of Computer Science/Associate Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/zhiyuan.chen"
+    },
+    {
+        "name": "Tomas Maul",
+        "position": "Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/tomas.maul"
+    },
+    {
+        "name": "Iman Yi Liao",
+        "position": "Associate Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/iman.liao"
+    },
+    {
+        "name": "El Ioini Nabil",
+        "position": "Associate Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/elioini.nabil"
+    },
+    {
+        "name": "Kher Hui (Marina) Ng",
+        "position": "Associate Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/marina.ng"
+    },
+    {
+        "name": "Kalaimagal Ramakrishnan",
+        "position": "Associate Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/kalaimagal.ramakrishnan"
+    },
+    {
+        "name": "Thamil Vaani Arvaree",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/thamil.vaani"
+    },
+    {
+        "name": "Simon Lau Boung Yew",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/simon.lau"
+    },
+    {
+        "name": "Tissa Chandesa",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/tissa.chandesa"
+    },
+    {
+        "name": "Tan Chye Cheah",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/chyecheah.tan"
+    },
+    {
+        "name": "Sze-Ker Chew",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/chew.sze-ker"
+    },
+    {
+        "name": "Michael J H Chung",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/michael.chung"
+    },
+    {
+        "name": "Yasir Hafeez",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/yasir.hafeez"
+    },
+    {
+        "name": "Sheila Ilangovan",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/sheila.ilangovan"
+    },
+    {
+        "name": "Yeah Lun Kweh",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/kweh.yeahlun"
+    },
+    {
+        "name": "Reginamary Matthews",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/reginamary.matthews"
+    },
+    {
+        "name": "Radu Muschevici",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/radu.muschevici"
+    },
+    {
+        "name": "Bavani Ramayah",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/bavani.r"
+    },
+    {
+        "name": "K R Selvaraj",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/kr.selvaraj"
+    },
+    {
+        "name": "Doreen Ying Ying Sim",
+        "position": "Assistant Professor",
+        "url": "https://www.nottingham.edu.my/ComputerScience/People/doreen.sim"
+    }
+]
+
+vectors = []
+for prof in professors:
+    doc = f"{prof['name']} is a {prof['position']} in the School of Computer Science. You can view their profile at {prof['url']}."
+    embedding = get_embedding(doc)
+    vectors.append((
+        prof["name"].replace(" ", "_").lower(),  # Unique ID
+        embedding,
+        {
+            "name": prof["name"],
+            "position": prof["position"],
+            "content": doc,
+            "source_url": prof["url"]
+        }
+    ))
+
+index.upsert(vectors=vectors, namespace="school-of-CS-staff")
+print("✅ All professor links stored successfully.")
 

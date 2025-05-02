@@ -46,13 +46,6 @@ param_grid = {
     'classifier__n_estimators': [50, 100, 200, 300, 400, 500]
 }
 
-# # Define a parameter grid to tune parameters (decision tree)
-# param_grid = {
-#     'classifier__max_depth': [None, 5, 10, 15],
-#     'classifier__min_samples_split': [2, 5, 10]
-# }
-
-
 # Set up the GridSearchCV with 5-fold cross-validation
 grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy')
 

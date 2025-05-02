@@ -36,7 +36,8 @@ def determine_namespaces_with_gpt(user_query, chat_history):
         "contact-information": "Only has contact information of the university (email, phone numbers), campus location, and office hours.",
         "campus-facilities": "Information about the facilities available on campus, including sports facilities, health services, prayer rooms, and amenities.",
         "school_of_CS_modules": "Specific informtaion about school of computer science modules and each modules details.""Provides detailed information about individual Computer Science modules such as module aims, learning outcomes, assessment methods",
-        "application-information": "Information on how to apply for the courses at the University of Nottingham Malaysia, accepting your offer and information on deposits for the offer."
+        "application-information": "Information on how to apply for the courses at the University of Nottingham Malaysia, accepting your offer and information on deposits for the offer.",
+        "school-of-CS-staff": "Information about the staff of the School of Computer Science Nottingham Malaysia"
     }
 
     system_prompt = (
@@ -71,7 +72,7 @@ def determine_namespaces_with_gpt(user_query, chat_history):
     )
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"User query: {user_query}"}
@@ -175,7 +176,7 @@ def recommend_courses(user_features=None):
 
 
 def analyze_sentiment(user_query):
-    """Analyzes the sentiment of the user query and returns 'positive' or 'negative'."""
+    """Analyzes the sentiment of the user query and returns 'positive', 'negative' or 'neutral'."""
     sentiment_score = sia.polarity_scores(user_query)["compound"]
 
     if sentiment_score > 0.2:  # Adjusted to capture actual positivity
@@ -191,14 +192,13 @@ def classify_user_intent(user_query):
     system_prompt = (
         "You are an AI assistant that classifies user intent for a university chatbot. "
         "Decide if the query is:\n"
-        "- 'course_info' if the user is asking about details of a specific course or the query is a FAQ.\n"
-        "- 'course_comparison' if the user is comparing two or more courses.\n"
-        "- 'recommendation' if the user is looking for course suggestions based on their interests.\n"
-        "Return only 'course_info', 'course_comparison', or 'recommendation' as the response."
+        "- 'course_info' : if the user is asking about details of a specific course, career opportunities for a degree or the query is a FAQ.\n"
+        "- 'recommendation' : if the user is looking for course suggestions based on their interests.\n"
+        "Return only 'course_info', or 'recommendation' as the response."
     )
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"User query: {user_query}"}

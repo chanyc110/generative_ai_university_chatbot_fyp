@@ -29,8 +29,7 @@ class QueryRequest(BaseModel):
     language: Optional[str] = "en"
 
 # Model configuration and prompt template
-model = os.environ.get("MODEL", "llama3.2")
-# llm = Ollama(model=model)
+
 llm = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv('OPENAI_API_KEY'))
 
 template_test = """
