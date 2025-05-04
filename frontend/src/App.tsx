@@ -13,7 +13,7 @@ const App: React.FC = () => {
         minHeight: "100vh",
       }}
     >
-      <h1 style={{ color: "black" }}>University of Nottingham Malaysia</h1>
+      <h1 style={{ color: "white" }}>University of Nottingham Malaysia</h1>
       <Chatbot />
     </div>
   );

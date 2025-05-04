@@ -147,7 +147,7 @@ const Chatbot: React.FC = () => {
       {isOpen && (
         <div className={`chat-popup ${isClosing ? 'closing' : ''}`}>
           <div className="chat-header">
-            <span className="chat-title">University Chatbot</span>
+            <span className="chat-title">UNM Chatbot</span>
             <div className="header-actions">
             <button className="menu-btn" onClick={toggleSidebar}>⋮</button>
             <button className="close-btn" onClick={closeChatbot}>✖</button>
